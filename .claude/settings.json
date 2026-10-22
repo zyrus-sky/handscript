@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/ensure_deps.py 2>/dev/null || python .claude/hooks/ensure_deps.py"
+          }
+        ]
+      }
+    ]
+  }
+}

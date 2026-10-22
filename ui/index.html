@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HandScript | The Digital Atelier</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#351000",
+              "on-surface": "#e0e0fa",
+              "on-error": "#690005",
+              "on-primary-fixed-variant": "#3323cc",
+              "surface-container-highest": "#323347",
+              "error-container": "#93000a",
+              "on-background": "#e0e0fa",
+              "on-primary-fixed": "#0f0069",
+              "on-primary-container": "#dad7ff",
+              "surface-dim": "#101223",
+              "surface": "#101223",
+              "surface-bright": "#36384b",
+              "primary-fixed": "#e2dfff",
+              "secondary": "#d2bbff",
+              "on-surface-variant": "#c7c4d8",
+              "on-error-container": "#ffdad6",
+              "background": "#101223",
+              "error": "#ffb4ab",
+              "on-secondary-fixed": "#25005a",
+              "surface-container-lowest": "#0b0d1e",
+              "on-secondary": "#3f008e",
+              "secondary-fixed": "#eaddff",
+              "inverse-primary": "#4d44e3",
+              "on-secondary-container": "#c9aeff",
+              "surface-container": "#1c1e30",
+              "surface-container-low": "#181a2c",
+              "surface-container-high": "#27293b",
+              "on-secondary-fixed-variant": "#5a00c6",
+              "outline": "#918fa1",
+              "primary-container": "#4f46e5",
+              "primary": "#c3c0ff",
+              "inverse-on-surface": "#2d2f42",
+              "secondary-fixed-dim": "#d2bbff",
+              "on-primary": "#1d00a5",
+              "tertiary-fixed-dim": "#ffb695",
+              "surface-variant": "#323347",
+              "secondary-container": "#6001d1",
+              "inverse-surface": "#e0e0fa",
+              "on-tertiary": "#571f00",
+              "tertiary": "#ffb695",
+              "primary-fixed-dim": "#c3c0ff",
+              "on-tertiary-fixed-variant": "#7b2f00",
+              "on-tertiary-container": "#ffd2be",
+              "outline-variant": "#464555",
+              "tertiary-container": "#a44100",
+              "tertiary-fixed": "#ffdbcc",
+              "surface-tint": "#c3c0ff"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #323347;
+            border-radius: 10px;
+        }
+        .dotted-grid {
+            background-image: radial-gradient(circle, #323347 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .paper-content {
+            font-family: 'Dancing Script', cursive; /* Fallback for demo */
+            line-height: 1.8;
+            color: #000080;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body overflow-hidden">
+<!-- TopNavBar from JSON -->
+<nav class="fixed top-0 w-full z-50 h-16 flex justify-between items-center px-8 w-full bg-surface/60 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+<div class="flex items-center gap-4">
+<span class="text-2xl font-black tracking-tighter text-[#E0E0FA]">HandScript</span>
+</div>
+<div class="hidden md:flex items-center space-x-8 font-inter tracking-tight font-medium">
+<a class="text-[#4F46E5] border-b-2 border-[#4F46E5] pb-1 hover:bg-white/5 transition-all duration-300" href="#">Atelier</a>
+<a class="text-[#C7C4D8] hover:text-[#E0E0FA] hover:bg-white/5 transition-all duration-300" href="#">Manuscripts</a>
+<a class="text-[#C7C4D8] hover:text-[#E0E0FA] hover:bg-white/5 transition-all duration-300" href="#">Inks</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-gradient-to-r from-primary-container to-secondary-container text-white px-6 py-2 rounded-xl font-medium text-sm transition-transform active:scale-95">
+                Generate PDF
+            </button>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="settings">settings</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="account_circle">account_circle</span>
+</div>
+</nav>
+<!-- Main Layout Container -->
+<div class="flex h-screen pt-16">
+<!-- SideNavBar from JSON (Semantic Mapping: Atelier -> Workspace active) -->
+<aside class="h-screen w-20 flex flex-col border-none bg-[#1C1E30] fixed left-0 top-0 h-full flex flex-col py-6 items-center z-40 pt-20">
+<div class="flex flex-col gap-8 flex-1">
+<!-- Workspace - Active -->
+<div class="flex flex-col items-center gap-1 group">
+<div class="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-[#4F46E5] to-[#6001D1] text-white rounded-xl shadow-lg cursor-pointer">
+<span class="material-symbols-outlined" data-icon="edit_note">edit_note</span>
+</div>
+<span class="text-[10px] text-white font-medium">Workspace</span>
+</div>
+<!-- Font Library -->
+<div class="flex flex-col items-center gap-1 group opacity-60 hover:opacity-100 transition-all cursor-pointer hover:translate-x-1">
+<div class="w-12 h-12 flex items-center justify-center text-[#C7C4D8] hover:bg-[#323347] rounded-xl">
+<span class="material-symbols-outlined" data-icon="font_download">font_download</span>
+</div>
+<span class="text-[10px]">Library</span>
+</div>
+<!-- Layouts -->
+<div class="flex flex-col items-center gap-1 group opacity-60 hover:opacity-100 transition-all cursor-pointer hover:translate-x-1">
+<div class="w-12 h-12 flex items-center justify-center text-[#C7C4D8] hover:bg-[#323347] rounded-xl">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+</div>
+<span class="text-[10px]">Layouts</span>
+</div>
+<!-- Export -->
+<div class="flex flex-col items-center gap-1 group opacity-60 hover:opacity-100 transition-all cursor-pointer hover:translate-x-1">
+<div class="w-12 h-12 flex items-center justify-center text-[#C7C4D8] hover:bg-[#323347] rounded-xl">
+<span class="material-symbols-outlined" data-icon="picture_as_pdf">picture_as_pdf</span>
+</div>
+<span class="text-[10px]">Export</span>
+</div>
+</div>
+<div class="flex flex-col gap-6 pb-4">
+<span class="material-symbols-outlined text-[#C7C4D8] opacity-60 hover:opacity-100 cursor-pointer" data-icon="inventory_2">inventory_2</span>
+<span class="material-symbols-outlined text-[#C7C4D8] opacity-60 hover:opacity-100 cursor-pointer" data-icon="help_outline">help_outline</span>
+</div>
+</aside>
+<!-- Main Workspace Grid -->
+<main class="flex w-full ml-20 overflow-hidden">
+<!-- Left Panel (40% width) -->
+<section class="w-[40%] bg-surface-container border-r border-outline-variant/10 overflow-y-auto custom-scrollbar p-8 flex flex-col gap-8">
+<header class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="ink_pen">ink_pen</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight text-on-surface">The Atelier</h1>
+<p class="text-xs text-on-surface-variant">Premium Workspace</p>
+</div>
+</header>
+<!-- Input Section -->
+<div class="space-y-3">
+<label class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="notes">notes</span> Your Text
+                    </label>
+<div class="relative group">
+<textarea class="w-full h-40 bg-surface-container-lowest border-none rounded-xl p-4 text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-primary/30 transition-all resize-none shadow-inner" placeholder="Type or paste your text here..."></textarea>
+<div class="absolute inset-0 rounded-xl pointer-events-none group-focus-within:shadow-[0_0_20px_rgba(79,70,229,0.1)] transition-all"></div>
+</div>
+<!-- Structured input: PDF import, local AI tidy (own id/classes: the font-chip code
+     takes over the first ".flex.flex-wrap.gap-2" on the page) -->
+<div id="doc-tools" class="flex flex-row flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px]">
+<button id="btn-import-pdf" type="button" class="px-3 py-1.5 rounded-lg bg-surface-container-highest text-on-surface hover:text-primary transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-sm">picture_as_pdf</span>Import PDF</button>
+<input id="pdf-input" type="file" accept=".pdf,application/pdf" class="hidden"/>
+<button id="btn-tidy" type="button" class="px-3 py-1.5 rounded-lg bg-surface-container-highest text-on-surface hover:text-primary transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-sm">auto_awesome</span>Tidy with local AI</button>
+<label class="flex items-center gap-1 text-on-surface-variant cursor-pointer"><input id="chk-ai-figures" type="checkbox" class="accent-primary"/> AI reads PDF figures</label>
+<button id="btn-write-myself" type="button" class="px-3 py-1.5 rounded-lg bg-surface-container-highest text-on-surface hover:text-primary transition-colors flex items-center gap-1" title="Open the writing pad with the words this text needs from you"><span class="material-symbols-outlined text-sm">draw</span>Write sentences from this text</button>
+</div>
+<div id="doc-status" class="text-[11px] text-on-surface-variant whitespace-pre-line"></div>
+<div id="repeats-box" class="hidden text-[11px] bg-surface-container-low rounded-lg p-3 text-on-surface-variant">
+Not enough copies — these words had to repeat the exact same handwriting on a page: <span id="repeats-list" class="text-on-surface"></span>
+<button id="repeats-write" type="button" class="text-primary hover:underline ml-1">Write sentences with them →</button>
+</div>
+<div id="needs-box" class="hidden text-[11px] bg-surface-container-low rounded-lg p-3 text-on-surface-variant">
+Written with a font (not your hand yet): <span id="needs-list" class="font-mono text-on-surface"></span>
+<a id="needs-link" href="/capture" class="text-primary hover:underline ml-1">Write them on the pad →</a>
+</div>
+<p class="text-[10px] text-outline-variant leading-relaxed">Markdown works: # headings · - lists · | tables | · ```mermaid flowcharts · $math$ / $$math$$ · ![caption](pad:name) for drawings made on the <a href="/capture" class="text-primary hover:underline">pad</a>.</p>
+</div>
+<!-- Fonts Section -->
+<div class="space-y-4">
+<label class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="text_fields">text_fields</span> Fonts
+                    </label>
+<div class="border-2 border-dashed border-outline-variant/30 rounded-xl p-8 flex flex-col items-center justify-center gap-3 bg-surface-container-low/50 hover:bg-surface-container-high transition-all group cursor-pointer">
+<span class="material-symbols-outlined text-3xl text-primary" data-icon="upload_file">upload_file</span>
+<p class="text-sm text-on-surface-variant group-hover:text-on-surface">Drop .ttf/.otf files here</p>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1.5 bg-surface-container-highest text-primary text-xs rounded-full flex items-center gap-2 border border-outline-variant/20 hover:border-primary/50 cursor-default">
+                            Indie Flower.ttf <span class="material-symbols-outlined text-[10px] cursor-pointer" data-icon="close">close</span>
+</span>
+<span class="px-3 py-1.5 bg-surface-container-highest text-on-surface-variant text-xs rounded-full flex items-center gap-2 border border-outline-variant/20 hover:border-primary/50 cursor-default">
+                            Dancing Script.otf <span class="material-symbols-outlined text-[10px] cursor-pointer" data-icon="close">close</span>
+</span>
+</div>
+</div>
+<!-- Settings Section -->
+<div class="bg-surface-container-low rounded-2xl p-6 space-y-6">
+<div id="settings-toggle" class="flex items-center justify-between cursor-pointer group">
+<label class="text-xs font-semibold uppercase tracking-wider text-on-surface flex items-center gap-2 pointer-events-none">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="tune">tune</span> Imperfection Settings
+                    </label>
+<span id="settings-arrow" class="material-symbols-outlined text-on-surface-variant group-hover:text-primary" data-icon="expand_more">expand_more</span>
+</div>
+<div id="settings-grid" class="grid gap-5">
+<!-- Font Size -->
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Font Size</span>
+<span id="font-size-val" class="text-primary font-mono">42px</span>
+</div>
+<input id="slider-font-size" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="20" max="80" value="42"/>
+</div>
+<!-- Line Spacing (multiplier; also works on top of "My Handwriting" layout) -->
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Line Spacing</span>
+<span id="line-spacing-val" class="text-primary font-mono">1.00×</span>
+</div>
+<input id="slider-line-spacing" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="0.8" max="2.5" step="0.05" value="1"/>
+</div>
+<!-- Letter Width -->
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span title="Pad-written letters are already widened to match your paper handwriting; adjust from there">Letter Width</span>
+<span id="letter-width-val" class="text-primary font-mono">1.00×</span>
+</div>
+<input id="slider-letter-width" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="0.8" max="1.4" step="0.02" value="1"/>
+</div>
+<!-- Line Height -->
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Line Height</span>
+<span id="line-height-val" class="text-primary font-mono">60px</span>
+</div>
+<input id="slider-line-height" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="40" max="120" value="60"/>
+</div>
+<!-- Letter Spacing -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Letter Spacing</span>
+<span id="letter-spacing-val" class="text-primary font-mono">1px</span>
+</div>
+<input id="slider-letter-spacing" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="-2" max="12" step="0.5" value="1"/>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Spacing Jitter</span>
+<span id="letter-jitter-val" class="text-primary font-mono">2px</span>
+</div>
+<input id="slider-letter-jitter" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="0" max="10" step="0.5" value="2"/>
+</div>
+</div>
+<!-- Word Spacing -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Word Space Min</span>
+<span id="word-space-min-val" class="text-primary font-mono">10px</span>
+</div>
+<input id="slider-word-space-min" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="2" max="30" step="0.5" value="10"/>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Word Space Max</span>
+<span id="word-space-max-val" class="text-primary font-mono">18px</span>
+</div>
+<input id="slider-word-space-max" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="2" max="40" step="0.5" value="18"/>
+</div>
+</div>
+<!-- Line Height Jitter -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Line Gap Jitter</span>
+<span id="line-gap-jitter-val" class="text-primary font-mono">±7px</span>
+</div>
+<input id="slider-line-gap-jitter" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="0" max="20" step="0.5" value="7"/>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Margin Jitter</span>
+<span id="margin-jitter-val" class="text-primary font-mono">±4px</span>
+</div>
+<input id="slider-margin-jitter" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="0" max="15" step="0.5" value="4"/>
+</div>
+</div>
+<!-- Baseline Jitter -->
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Baseline Jitter</span>
+<span id="baseline-jitter-val" class="text-primary font-mono">3px</span>
+</div>
+<input id="slider-baseline-jitter" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="0" max="8" value="3"/>
+</div>
+<!-- Wave Amplitude -->
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Wave Amplitude</span>
+<span id="wave-amplitude-val" class="text-primary font-mono">2.5</span>
+</div>
+<input id="slider-wave-amplitude" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="0" max="6" step="0.5" value="2.5"/>
+</div>
+<!-- Two-column: Line Slope + Rotation -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Line Slope</span>
+<span id="line-slope-val" class="text-primary font-mono">0.015</span>
+</div>
+<input id="slider-line-slope" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="0" max="0.03" step="0.001" value="0.015"/>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Rotation</span>
+<span id="rotation-val" class="text-primary font-mono">3.5°</span>
+</div>
+<input id="slider-rotation" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="0" max="8" step="0.5" value="3.5"/>
+</div>
+</div>
+<!-- Two-column: Opacity Min + Max -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Opacity Min</span>
+<span id="opacity-min-val" class="text-primary font-mono">180</span>
+</div>
+<input id="slider-opacity-min" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="100" max="255" value="180"/>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Opacity Max</span>
+<span id="opacity-max-val" class="text-primary font-mono">255</span>
+</div>
+<input id="slider-opacity-max" class="w-full h-1 bg-surface-container-highest rounded-full appearance-none accent-secondary cursor-pointer" type="range" min="100" max="255" value="255"/>
+</div>
+</div>
+<!-- Word Jitter Y -->
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>Word Y Jitter</span>
+<span id="word-jitter-val" class="text-primary font-mono">3px</span>
+</div>
+<input id="slider-word-jitter" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="0" max="8" value="3"/>
+</div>
+<!-- Word-Level Baseline Toggle -->
+<div class="flex items-center justify-between py-2">
+<div>
+<span class="text-[11px] text-on-surface-variant">Word-Level Baseline</span>
+<p class="text-[9px] text-outline mt-0.5">Letters in a word stay level; words shift</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input id="toggle-word-baseline" type="checkbox" class="sr-only peer" checked>
+<div class="w-9 h-5 bg-surface-container-highest rounded-full peer peer-checked:bg-gradient-to-r peer-checked:from-primary-container peer-checked:to-secondary-container transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+</label>
+</div>
+</div>
+</div>
+<!-- Ink Color Picker -->
+<div class="flex items-center justify-between bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Ink Color</span>
+<div class="flex items-center gap-3 relative">
+<button type="button" class="ink-preset text-[10px] px-2 py-1 rounded-md border border-outline-variant/30 text-on-surface-variant hover:text-primary" data-color="#0c0276" title="Matched to a real blue ballpoint on paper (prints dark violet-blue, not bright blue)">Ballpoint blue</button>
+<button type="button" class="ink-preset text-[10px] px-2 py-1 rounded-md border border-outline-variant/30 text-on-surface-variant hover:text-primary" data-color="#141416" title="Black ballpoint">Black</button>
+<span id="ink-color-hex" class="text-[10px] font-mono text-outline-variant">#141416</span>
+<input id="ink-color-input" type="color" value="#141416" class="absolute right-0 opacity-0 w-8 h-8 cursor-pointer"/>
+<div id="ink-color-dot" class="w-8 h-8 rounded-full bg-[#141416] border-2 border-white/20 shadow-lg cursor-pointer transition-transform hover:scale-110"></div>
+</div>
+</div>
+<!-- My Handwriting (glyph bank) -->
+<div class="flex items-center justify-between gap-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">My Handwriting</span>
+<div class="flex items-center gap-3">
+<select id="glyph-bank-select" class="text-xs bg-surface-container-highest text-on-surface rounded-lg border-none py-1.5 pl-2 pr-7">
+<option value="">Off (fonts only)</option>
+</select>
+<a href="/label" class="text-[11px] text-primary hover:underline">Label</a>
+<a href="/capture" class="text-[11px] text-primary hover:underline">Pad</a>
+<a href="/practice" class="text-[11px] text-primary hover:underline">Practice</a>
+<a href="/bank" class="text-[11px] text-primary hover:underline">Manage</a>
+</div>
+</div>
+<label id="hw-model-row" class="hidden flex items-center justify-between gap-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 cursor-pointer">
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">AI handwriting model <span class="normal-case font-normal text-[10px] text-outline-variant">(slow, ~0.4 s/char on GPU)</span></span>
+<input id="toggle-hw-model" type="checkbox" class="accent-primary w-4 h-4"/>
+</label>
+<label class="flex items-center justify-between gap-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 cursor-pointer">
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Reading check <span class="normal-case font-normal text-[10px] text-outline-variant">(rewrites words that don't read right; slower)</span></span>
+<input id="toggle-proofread" type="checkbox" class="accent-primary w-4 h-4" checked/>
+</label>
+<label class="flex items-center justify-between gap-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 cursor-pointer">
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Scanned look <span class="normal-case font-normal text-[10px] text-outline-variant">(paper, grain, ink bleed; off for printing)</span></span>
+<input id="toggle-scanlook" type="checkbox" class="accent-primary w-4 h-4"/>
+</label>
+<div class="flex flex-col gap-2 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
+<div class="flex justify-between items-center"><span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Ink texture <span class="normal-case font-normal text-[10px] text-outline-variant">(ballpoint streaks, ink flow)</span></span><span id="ink-texture-val" class="text-primary font-mono text-[11px]">0.40</span></div>
+<input id="slider-ink-texture" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="0" max="1" step="0.05" value="0.4"/>
+</div>
+<div class="flex flex-col gap-2 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
+<label class="flex justify-between items-center cursor-pointer"><span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Show-through <span class="normal-case font-normal text-[10px] text-outline-variant">(next page visible through the sheet)</span></span><input id="toggle-showthrough" type="checkbox" class="accent-primary w-4 h-4"/></label>
+<div class="flex justify-between text-[11px] text-on-surface-variant"><span>Strength</span><span id="showthrough-val" class="text-primary font-mono">0.50</span></div>
+<input id="slider-showthrough" class="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none accent-primary cursor-pointer" type="range" min="0.05" max="1" step="0.05" value="0.5"/>
+</div>
+<label class="flex items-center justify-between gap-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Quality</span>
+<select id="select-dpi" class="text-xs bg-surface-container-highest text-on-surface rounded-lg border-none py-1.5 pl-2 pr-7">
+<option value="300" selected>300 DPI (fast)</option><option value="450">450 DPI</option><option value="600">600 DPI (best, ~4× slower)</option>
+</select>
+</label>
+<!-- Footer Action -->
+<button class="w-full py-4 bg-gradient-to-r from-[#4F46E5] to-[#6001D1] text-white font-bold rounded-2xl shadow-xl hover:shadow-[#4F46E5]/20 hover:opacity-90 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>
+                    Generate PDF
+                </button>
+</section>
+<!-- Right Panel (60% width) -->
+<section class="w-[60%] dotted-grid bg-[#0b0d1e] overflow-y-auto custom-scrollbar flex flex-col items-center py-12 px-8">
+<!-- A4 Preview Component -->
+<div class="relative group">
+<!-- Glassy shelf reflection effect -->
+<div class="absolute -inset-4 bg-primary/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+<div class="relative w-[595px] min-h-[842px] bg-white rounded-sm shadow-[0_30px_60px_rgba(0,0,0,0.5)] p-16 transition-transform duration-500 hover:-translate-y-2">
+<div class="paper-content text-xl space-y-6">
+<p class="italic" style="font-family: 'Georgia', serif;">Dear friend,</p>
+<p class="italic leading-relaxed" style="font-family: 'Georgia', serif;">
+                                This is a sample of our handwritten rendering engine. Every character is carefully positioned with intentional imperfections to mimic the organic flow of human ink on paper. Notice how the baseline subtly drifts and the ink opacity varies with every stroke. 
+                            </p>
+<p class="italic" style="font-family: 'Georgia', serif;">
+                                We believe that in a digital world, the personal touch of handwriting carries more weight than ever before. Whether it's a letter, an invitation, or a simple thank you note, let HandScript bring your digital words to life.
+                            </p>
+<div class="pt-12 text-right italic" style="font-family: 'Georgia', serif;">
+<p>Warmly,</p>
+<p class="text-3xl mt-2">The HandScript Team</p>
+</div>
+</div>
+<!-- Page number watermark -->
+<div class="absolute bottom-8 right-8 text-black/10 font-mono text-sm">P.01</div>
+</div>
+</div>
+<!-- Preview Actions -->
+<div class="mt-12 flex flex-col items-center gap-6 w-full max-w-md">
+<div class="flex items-center gap-8 bg-surface-container/80 backdrop-blur-md px-6 py-3 rounded-full border border-outline-variant/10 shadow-lg">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="chevron_left">chevron_left</button>
+<span class="text-xs font-medium tracking-widest text-on-surface uppercase">Page 1 of 3</span>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors" data-icon="chevron_right">chevron_right</button>
+</div>
+<div class="flex gap-4 w-full">
+<button class="flex-1 bg-surface-container-high hover:bg-surface-bright text-on-surface py-3 rounded-xl border border-outline-variant/20 transition-all flex items-center justify-center gap-2 text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="zoom_in">zoom_in</span> Zoom
+                        </button>
+<button class="flex-1 bg-surface-container-high hover:bg-surface-bright text-on-surface py-3 rounded-xl border border-outline-variant/20 transition-all flex items-center justify-center gap-2 text-sm font-medium">
+<span class="material-symbols-outlined text-sm" data-icon="download">download</span> Download PDF
+                        </button>
+</div>
+</div>
+<!-- Aesthetic Image/Graphic at bottom -->
+<div class="mt-20 w-full opacity-30 grayscale hover:grayscale-0 transition-all duration-1000">
+<img alt="Digital Atelier aesthetic" class="w-full h-48 object-cover rounded-3xl" data-alt="Close-up of a vintage fountain pen resting on parchment paper with soft afternoon sunlight casting long shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-wQ5IFjxQBIMo-dk2L7kHNIjzjPXc_QwXKKuZJc2eorXvhheHq7WD0Z6xdtLbU1UQSO1wBSsJdrYLRP3wPzIVciAgp8FdQlCa5mfV2rnu8VJUZH0XqQUyXX9fPba2pYci7vlMQOY1zURKfZirC8NCr-usrA55rD-b0X6ZWKexxBVMYFf-rsv0nJ9SzzwSJtjBuQ0NjCK9T1N62Wp_BwUAp8qEB2XXAmGhfE8M2gNPKnsFRucQ-LHzUtVKKOAxgGjTfVhjNqpA2tuy"/>
+</div>
+</section>
+</main>
+</div>
+<!-- Background Decorative Gradients -->
+<script>
+(function() {
+    // ── State ────────────────────────────────────────────────
+    const state = {
+        fontPaths: [],
+        fontNames: [],
+        pages: [],
+        currentPage: 0,
+        sessionId: null,
+        loading: false,
+        zoomed: false,
+    };
+
+    // ── Slider bindings (id → value display element id) ──────
+    const SLIDERS = {
+        'slider-font-size':       { valId: 'font-size-val',       suffix: 'px', parse: parseInt },
+        'slider-line-height':     { valId: 'line-height-val',     suffix: 'px', parse: parseInt },
+        'slider-line-spacing':    { valId: 'line-spacing-val',    suffix: '×',  parse: v => parseFloat(v).toFixed(2) },
+        'slider-letter-width':    { valId: 'letter-width-val',    suffix: '×',  parse: v => parseFloat(v).toFixed(2) },
+        'slider-ink-texture':     { valId: 'ink-texture-val',     suffix: '',   parse: v => parseFloat(v).toFixed(2) },
+        'slider-showthrough':     { valId: 'showthrough-val',     suffix: '',   parse: v => parseFloat(v).toFixed(2) },
+        'slider-letter-spacing':  { valId: 'letter-spacing-val',  suffix: 'px', parse: parseFloat },
+        'slider-letter-jitter':   { valId: 'letter-jitter-val',   suffix: 'px', parse: parseFloat },
+        'slider-word-space-min':  { valId: 'word-space-min-val',  suffix: 'px', parse: parseFloat },
+        'slider-word-space-max':  { valId: 'word-space-max-val',  suffix: 'px', parse: parseFloat },
+        'slider-line-gap-jitter': { valId: 'line-gap-jitter-val', suffix: 'px', parse: parseFloat, prefix: '±' },
+        'slider-margin-jitter':   { valId: 'margin-jitter-val',   suffix: 'px', parse: parseFloat, prefix: '±' },
+        'slider-baseline-jitter': { valId: 'baseline-jitter-val', suffix: 'px', parse: parseFloat },
+        'slider-wave-amplitude':  { valId: 'wave-amplitude-val',  suffix: '',   parse: parseFloat },
+        'slider-line-slope':      { valId: 'line-slope-val',      suffix: '',   parse: parseFloat },
+        'slider-rotation':        { valId: 'rotation-val',        suffix: '°',  parse: parseFloat },
+        'slider-opacity-min':     { valId: 'opacity-min-val',     suffix: '',   parse: parseInt },
+        'slider-opacity-max':     { valId: 'opacity-max-val',     suffix: '',   parse: parseInt },
+        'slider-word-jitter':     { valId: 'word-jitter-val',     suffix: 'px', parse: parseFloat },
+    };
+
+    // Wire all sliders for live value readout
+    for (const [sliderId, meta] of Object.entries(SLIDERS)) {
+        const slider = document.getElementById(sliderId);
+        const valEl  = document.getElementById(meta.valId);
+        if (slider && valEl) {
+            slider.addEventListener('input', () => {
+                valEl.textContent = (meta.prefix || '') + meta.parse(slider.value) + meta.suffix;
+            });
+        }
+    }
+
+    // ── DOM refs ─────────────────────────────────────────────
+    const textarea      = document.querySelector('textarea');
+    const generateBtn   = document.querySelector('button.w-full.py-4');
+    const topGenBtn     = document.querySelector('nav button');
+    const dropZone      = document.querySelector('.border-dashed');
+    const fontChipsDiv  = document.querySelector('.flex.flex-wrap.gap-2');
+    const pageLabel     = document.querySelector('.tracking-widest');
+    const prevBtn       = document.querySelector('[data-icon="chevron_left"]');
+    const nextBtn       = document.querySelector('[data-icon="chevron_right"]');
+    const paperGroup    = document.querySelector('.relative.group');
+    const settingsToggle= document.getElementById('settings-toggle');
+    const settingsGrid  = document.getElementById('settings-grid');
+    const settingsArrow = document.getElementById('settings-arrow');
+    const inkColorInput = document.getElementById('ink-color-input');
+    const inkColorDot   = document.getElementById('ink-color-dot');
+    const inkColorHex   = document.getElementById('ink-color-hex');
+    const wordBaselineToggle = document.getElementById('toggle-word-baseline');
+
+    // ── Settings toggle ──────────────────────────────────────
+    let settingsOpen = true;
+    if (settingsToggle && settingsGrid) {
+        settingsToggle.addEventListener('click', () => {
+            settingsOpen = !settingsOpen;
+            settingsGrid.style.display = settingsOpen ? '' : 'none';
+            if (settingsArrow) settingsArrow.textContent = settingsOpen ? 'expand_more' : 'expand_less';
+        });
+    }
+
+    // ── Ink color picker ─────────────────────────────────────
+    if (inkColorDot && inkColorInput) {
+        inkColorDot.addEventListener('click', () => inkColorInput.click());
+        document.querySelectorAll('.ink-preset').forEach(b => b.addEventListener('click', () => {
+            inkColorInput.value = b.dataset.color;
+            inkColorInput.dispatchEvent(new Event('input'));
+        }));
+        inkColorInput.addEventListener('input', () => {
+            inkColorDot.style.backgroundColor = inkColorInput.value;
+            if (inkColorHex) inkColorHex.textContent = inkColorInput.value;
+        });
+    }
+
+    // ── Load bundled fonts ───────────────────────────────────
+    // ── Glyph banks (letters cut from the user's own scans) ──
+    const glyphBankSelect = document.getElementById('glyph-bank-select');
+    const hwModelRow = document.getElementById('hw-model-row');
+    const hwModelToggle = document.getElementById('toggle-hw-model');
+    let bankInfo = [];
+    function syncModelRow() {
+        const b = bankInfo.find(b => b.name === glyphBankSelect.value);
+        hwModelRow?.classList.toggle('hidden', !(b && b.model_ready));
+    }
+    glyphBankSelect?.addEventListener('change', syncModelRow);
+    async function loadGlyphBanks() {
+        if (!glyphBankSelect) return;
+        try {
+            const banks = await (await fetch('/api/banks')).json();
+            bankInfo = banks;
+            for (const b of banks.filter(b => b.ready)) {
+                glyphBankSelect.insertAdjacentHTML('beforeend', `<option value="${b.name}">${b.name}</option>`);
+            }
+            if (glyphBankSelect.options.length > 1) glyphBankSelect.selectedIndex = 1;
+            syncModelRow();
+        } catch (e) { console.warn('Could not load glyph banks', e); }
+    }
+
+    async function loadBundledFonts() {
+        try {
+            const res = await fetch('/api/fonts/bundled');
+            const fonts = await res.json();
+            state.fontPaths = fonts.map(f => f.path);
+            state.fontNames = fonts.map(f => f.name);
+            renderFontChips();
+        } catch(e) {
+            console.error('Failed to load bundled fonts', e);
+        }
+    }
+
+    function renderFontChips() {
+        if (!fontChipsDiv) return;
+        fontChipsDiv.innerHTML = state.fontNames.map((name, i) => `
+            <span class="px-3 py-1.5 bg-surface-container-highest text-primary text-xs rounded-full flex items-center gap-2 border border-outline-variant/20 hover:border-primary/50 cursor-default">
+                ${name}
+                <span class="material-symbols-outlined text-[10px] cursor-pointer font-chip-remove" data-idx="${i}">close</span>
+            </span>
+        `).join('');
+        fontChipsDiv.querySelectorAll('.font-chip-remove').forEach(el => {
+            el.addEventListener('click', () => {
+                const idx = parseInt(el.dataset.idx);
+                state.fontPaths.splice(idx, 1);
+                state.fontNames.splice(idx, 1);
+                renderFontChips();
+            });
+        });
+    }
+
+    // ── Font upload ──────────────────────────────────────────
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.ttf,.otf';
+    fileInput.multiple = true;
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    if (dropZone) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('bg-surface-container-high'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-surface-container-high'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('bg-surface-container-high');
+            uploadFonts(e.dataTransfer.files);
+        });
+    }
+    fileInput.addEventListener('change', () => uploadFonts(fileInput.files));
+
+    async function uploadFonts(files) {
+        for (const f of files) {
+            const form = new FormData();
+            form.append('font', f);
+            try {
+                const res = await fetch('/api/fonts/upload', { method: 'POST', body: form });
+                const data = await res.json();
+                if (data.path) {
+                    state.fontPaths.push(data.path);
+                    state.fontNames.push(data.name);
+                }
+            } catch(e) {
+                console.error('Font upload failed', e);
+            }
+        }
+        renderFontChips();
+    }
+
+    // ── Read all config from UI ──────────────────────────────
+    function getConfig() {
+        const v = id => {
+            const el = document.getElementById(id);
+            return el ? el.value : null;
+        };
+        const colorHex = inkColorInput ? inkColorInput.value : '#141416';
+        const r = parseInt(colorHex.slice(1,3), 16);
+        const g = parseInt(colorHex.slice(3,5), 16);
+        const b = parseInt(colorHex.slice(5,7), 16);
+
+        return {
+            font_size:       parseInt(v('slider-font-size')) || 42,
+            line_height:     parseInt(v('slider-line-height')) || 60,
+            line_spacing:    parseFloat(v('slider-line-spacing')) || 1,
+            letter_width:    parseFloat(v('slider-letter-width')) || 1,
+            letter_spacing:  parseFloat(v('slider-letter-spacing')) || 0,
+            letter_spacing_jitter: parseFloat(v('slider-letter-jitter')) || 2,
+            word_space_min:  parseFloat(v('slider-word-space-min')) || 10,
+            word_space_max:  parseFloat(v('slider-word-space-max')) || 18,
+            line_gap_jitter: parseFloat(v('slider-line-gap-jitter')) || 7,
+            margin_jitter:   parseFloat(v('slider-margin-jitter')) || 4,
+            baseline_jitter: parseFloat(v('slider-baseline-jitter')) || 3,
+            wave_amplitude:  parseFloat(v('slider-wave-amplitude')) || 2.5,
+            line_slope:      parseFloat(v('slider-line-slope')) || 0.015,
+            rotation_range:  parseFloat(v('slider-rotation')) || 3.5,
+            opacity_min:     parseInt(v('slider-opacity-min')) || 180,
+            opacity_max:     parseInt(v('slider-opacity-max')) || 255,
+            word_jitter_y:   parseFloat(v('slider-word-jitter')) || 3,
+            word_level_baseline: wordBaselineToggle ? wordBaselineToggle.checked : true,
+            ink_color:       [r, g, b],
+            glyph_bank:      glyphBankSelect ? glyphBankSelect.value : '',
+            proofread:       !!document.getElementById('toggle-proofread')?.checked,
+            scan_look:       !!document.getElementById('toggle-scanlook')?.checked,
+            ink_texture:     parseFloat(document.getElementById('slider-ink-texture')?.value ?? 0.4),
+            show_through:    !!document.getElementById('toggle-showthrough')?.checked,
+            show_through_strength: parseFloat(document.getElementById('slider-showthrough')?.value ?? 0.5),
+            dpi:             parseInt(document.getElementById('select-dpi')?.value || '300'),
+            handwriting_model: !!(hwModelToggle && hwModelToggle.checked && !hwModelRow.classList.contains('hidden')),
+        };
+    }
+
+    // ── Generate ─────────────────────────────────────────────
+    // ── Structured input: PDF import, local AI tidy, missing characters ──
+    const docStatus = document.getElementById('doc-status');
+    const setDocStatus = t => { if (docStatus) docStatus.textContent = t; };
+    function showRepeats(reps) {
+        const box = document.getElementById('repeats-box');
+        if (!box) return;
+        box.classList.toggle('hidden', !reps.length);
+        const seen = {};
+        reps.forEach(r => { const k = r.word; seen[k] = seen[k] || { n: 0, pages: [], copies: r.copies }; seen[k].n += r.repeats; seen[k].pages.push(r.page); });
+        document.getElementById('repeats-list').textContent = Object.entries(seen).slice(0, 12)
+            .map(([w, v]) => `${w} (${v.n + v.pages.length}× on p.${v.pages.join(',')}, ${v.copies} cop${v.copies === 1 ? 'y' : 'ies'})`).join(' · ');
+    }
+    document.getElementById('repeats-write')?.addEventListener('click', () => document.getElementById('btn-write-myself')?.click());
+    function showNeeds(needs) {
+        const box = document.getElementById('needs-box');
+        if (!box) return;
+        box.classList.toggle('hidden', !needs.length);
+        document.getElementById('needs-list').textContent = needs.join(' ');
+        document.getElementById('needs-link').href = '/capture?words=' + encodeURIComponent(needs.join(','));
+    }
+    const pdfInput = document.getElementById('pdf-input');
+    document.getElementById('btn-import-pdf')?.addEventListener('click', () => pdfInput?.click());
+    pdfInput?.addEventListener('change', async () => {
+        const file = pdfInput.files[0];
+        if (!file) return;
+        const useAI = document.getElementById('chk-ai-figures')?.checked;
+        setDocStatus(`Importing ${file.name}${useAI ? ' — local AI is reading figures, this can take a few minutes' : ''}…`);
+        const form = new FormData();
+        form.append('pdf', file);
+        form.append('use_llm', useAI ? '1' : '0');
+        try {
+            const data = await (await fetch('/api/import-pdf', { method: 'POST', body: form })).json();
+            if (data.error) { setDocStatus(data.error); return; }
+            textarea.value = data.markdown;
+            setDocStatus(`Imported ${file.name}. Check the text, then Generate.` + (data.notes?.length ? '\n' + data.notes.join('\n') : ''));
+        } catch (e) { setDocStatus('Import failed: ' + e); }
+        pdfInput.value = '';
+    });
+    document.getElementById('btn-write-myself')?.addEventListener('click', async () => {
+        const text = textarea?.value?.trim();
+        const bank = glyphBankSelect?.value || (bankInfo[0] && bankInfo[0].name);
+        if (!text) { textarea?.focus(); return; }
+        if (!bank) { setDocStatus('Pick your handwriting bank first.'); return; }
+        const sentences = await (await fetch(`/api/banks/${bank}/sentences-to-write`, { method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })).json();
+        if (!sentences.length) { setDocStatus('Your bank already covers this text well — nothing needed.'); return; }
+        setDocStatus(`${sentences.length} sentences to write for this text (they cover missing letters and often-repeated words).`);
+        try { localStorage.setItem('pad_queue', JSON.stringify(sentences)); } catch (e) {}
+        window.open('/capture?from=text', '_blank');
+    });
+    document.getElementById('btn-tidy')?.addEventListener('click', async () => {
+        const text = textarea?.value?.trim();
+        if (!text) { textarea?.focus(); return; }
+        setDocStatus('Tidying with the local AI (gemma4) — roughly a minute per half page…');
+        try {
+            const res = await fetch('/api/tidy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+            const data = await res.json();
+            if (data.error) { setDocStatus('Local AI: ' + data.error); return; }
+            textarea.value = data.markdown;
+            setDocStatus('Tidied. Review the Markdown, then Generate. (Undo: Ctrl+Z in the text box)');
+        } catch (e) { setDocStatus('Tidy failed: ' + e); }
+    });
+
+    async function generate() {
+        if (state.loading) return;
+        const text = textarea?.value?.trim();
+        if (!text) { textarea?.focus(); return; }
+
+        state.loading = true;
+        if (generateBtn) {
+            generateBtn.innerHTML = `<span class="material-symbols-outlined animate-spin">progress_activity</span> Generating...`;
+            generateBtn.classList.add('opacity-70', 'pointer-events-none');
+        }
+
+        try {
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text,
+                    font_paths: state.fontPaths,
+                    config: getConfig(),
+                }),
+            });
+            const data = await res.json();
+            if (data.error) { alert(data.error); return; }
+            showNeeds(data.needs || []);
+            showRepeats(data.repeats || []);
+            state.pages = data.pages;
+            state.words = data.words || [];
+            state.sessionId = data.session_id;
+            state.currentPage = 0;
+            showPage(0);
+        } catch(e) {
+            console.error('Generation failed', e);
+            alert('Generation failed. Check the server.');
+        } finally {
+            state.loading = false;
+            if (generateBtn) {
+                generateBtn.innerHTML = `<span class="material-symbols-outlined">auto_fix_high</span> Generate PDF`;
+                generateBtn.classList.remove('opacity-70', 'pointer-events-none');
+            }
+        }
+    }
+
+    generateBtn?.addEventListener('click', generate);
+    topGenBtn?.addEventListener('click', generate);
+
+    // ── Page preview ─────────────────────────────────────────
+    // ── Edit single words in the handwriting ─────────────────
+    function placeWordHits(idx, img) {
+        const hits = document.getElementById('word-hits');
+        if (!hits || !state.words || !state.words[idx]) return;
+        const k = img.clientWidth / 620;
+        hits.innerHTML = state.words[idx].map(w => {
+            const [x0, y0, x1, y1] = w.box;
+            return `<div class="word-hit" data-k="${w.k}" title="Edit “${w.text}”"
+                style="position:absolute;left:${x0 * k - 2}px;top:${y0 * k - 2}px;width:${(x1 - x0) * k + 4}px;height:${(y1 - y0) * k + 4}px;cursor:pointer;border-radius:3px"></div>`;
+        }).join('');
+        hits.querySelectorAll('.word-hit').forEach(el => {
+            el.onmouseenter = () => el.style.background = 'rgba(79,70,229,.12)';
+            el.onmouseleave = () => el.style.background = '';
+            el.onclick = () => openWordEditor(+el.dataset.k);
+        });
+    }
+
+    const ED = { k: null, strokes: [], cur: null, G: { base: 118, xh: 40 }, mode: 'word', sentence: '' };
+    function openWordEditor(k) {
+        ED.k = k; ED.strokes = []; ED.cur = null; ED.mode = 'word';
+        let m = document.getElementById('word-editor');
+        if (!m) {
+            document.body.insertAdjacentHTML('beforeend', `
+            <div id="word-editor" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:center;justify-content:center">
+              <div style="background:#1f1f23;color:#ececf0;border-radius:14px;padding:18px;width:min(640px,94vw);font:13px system-ui">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                  <b id="we-title" style="font-size:16px"></b><span style="flex:1"></span>
+                  <button id="we-close" style="background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 10px;cursor:pointer">Close</button>
+                </div>
+                <div style="display:flex;gap:6px;margin-bottom:12px">
+                  <button id="we-m-word" class="we-mode" style="border:1px solid #444;border-radius:8px;padding:4px 12px;cursor:pointer">This word</button>
+                  <button id="we-m-sent" class="we-mode" style="border:1px solid #444;border-radius:8px;padding:4px 12px;cursor:pointer">Whole sentence</button>
+                </div>
+                <div id="we-word-part">
+                  <div style="color:#9b9ba3;margin-bottom:6px">Pick another version:</div>
+                  <div id="we-cands" style="display:flex;flex-wrap:wrap;gap:8px;min-height:60px"></div>
+                  <button id="we-more" style="margin-top:8px;background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 10px;cursor:pointer">More versions</button>
+                </div>
+                <div id="we-pad-hint" style="color:#9b9ba3;margin:14px 0 6px">…or write it yourself (it's also saved to your handwriting):</div>
+                <div id="we-wrap" style="overflow-x:auto;border-radius:8px">
+                  <canvas id="we-pad" style="width:100%;height:170px;background:#fff;border-radius:8px;touch-action:none;cursor:crosshair;display:block"></canvas>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+                  <button id="we-save" style="background:#4f46e5;color:#fff;border:0;border-radius:8px;padding:6px 14px;cursor:pointer">Use my writing</button>
+                  <button id="we-clear" style="background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 10px;cursor:pointer">Clear</button>
+                  <span id="we-msg" style="color:#9b9ba3"></span>
+                </div>
+              </div>
+            </div>`);
+            m = document.getElementById('word-editor');
+            document.getElementById('we-close').onclick = () => m.style.display = 'none';
+            m.onclick = e => { if (e.target === m) m.style.display = 'none'; };
+            document.getElementById('we-more').onclick = loadCandidates;
+            document.getElementById('we-clear').onclick = () => { ED.strokes = []; drawPad(); };
+            document.getElementById('we-save').onclick = savePadWord;
+            document.getElementById('we-m-word').onclick = () => setEditMode('word');
+            document.getElementById('we-m-sent').onclick = () => setEditMode('sentence');
+            const pad = document.getElementById('we-pad');
+            const pt = e => { const r = pad.getBoundingClientRect(); const p = (e.pointerType === 'mouse' || !e.pressure) ? 0.5 : e.pressure;
+                              return [e.clientX - r.left, e.clientY - r.top, p]; };
+            pad.onpointerdown = e => { pad.setPointerCapture(e.pointerId); ED.cur = [pt(e)]; drawPad(); };
+            pad.onpointermove = e => { if (!ED.cur) return; const co = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+                                       for (const ev of (co.length ? co : [e])) ED.cur.push(pt(ev)); drawPad(); };
+            pad.onpointerup = pad.onpointercancel = () => { if (ED.cur) { ED.strokes.push(ED.cur); ED.cur = null; drawPad(); } };
+        }
+        m.style.display = 'flex';
+        const word = (state.words[state.currentPage] || []).find(w => w.k === k);
+        document.getElementById('we-title').textContent = `Edit “${word ? word.text : ''}”`;
+        document.getElementById('we-msg').textContent = '';
+        setEditMode('word');
+        loadCandidates();
+    }
+    function sizePad(nWords) {
+        // a sentence gets a wider pad (scrolls sideways): ~150 px per word
+        const pad = document.getElementById('we-pad'), wrap = document.getElementById('we-wrap');
+        const w = Math.max(wrap.clientWidth, (nWords || 1) * 150);
+        pad.style.width = w + 'px';
+        const dpr = window.devicePixelRatio || 1;
+        pad.width = w * dpr; pad.height = 170 * dpr; pad.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+        wrap.scrollLeft = 0;
+        drawPad();
+    }
+    async function setEditMode(mode) {
+        ED.mode = mode; ED.strokes = []; ED.cur = null;
+        document.querySelectorAll('.we-mode').forEach(b => {
+            const on = (b.id === 'we-m-sent') === (mode === 'sentence');
+            b.style.background = on ? '#4f46e5' : 'none'; b.style.color = on ? '#fff' : '#ccc';
+        });
+        document.getElementById('we-word-part').style.display = mode === 'word' ? '' : 'none';
+        const hint = document.getElementById('we-pad-hint'), msg = document.getElementById('we-msg');
+        msg.textContent = '';
+        if (mode === 'word') {
+            hint.textContent = "…or write it yourself (it's also saved to your handwriting):";
+            document.getElementById('we-save').textContent = 'Use my writing';
+            sizePad(1);
+            return;
+        }
+        document.getElementById('we-save').textContent = 'Replace the sentence';
+        hint.textContent = 'finding the sentence…';
+        sizePad(1);
+        const res = await fetch(`/api/edit/${state.sessionId}/${ED.k}/sentence-range`, { method: 'POST' });
+        const data = await res.json();
+        if (data.error) { hint.textContent = data.error; return; }
+        ED.sentence = data.text;
+        const n = data.text.split(/\s+/).filter(Boolean).length;
+        hint.innerHTML = `Write this sentence on the line, with a clear gap between words (saved to your handwriting too):<br>
+            <b style="color:#ececf0;font-size:15px">${data.text.replace(/</g, '&lt;')}</b>`;
+        sizePad(n);
+    }
+    function drawPad() {
+        const pad = document.getElementById('we-pad'), g = pad.getContext('2d'), w = pad.getBoundingClientRect().width;
+        g.clearRect(0, 0, w, 200);
+        g.fillStyle = '#fff'; g.fillRect(0, 0, w, 200);
+        const line = (y, c, d) => { g.save(); g.strokeStyle = c; g.setLineDash(d || []); g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); g.restore(); };
+        line(ED.G.base - ED.G.xh, 'rgba(79,70,229,.25)', [3, 5]); g.lineWidth = 2; line(ED.G.base, 'rgba(220,38,38,.8)'); g.lineWidth = 1;
+        g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#111';
+        for (const st of [...ED.strokes, ...(ED.cur ? [ED.cur] : [])])
+            for (let i = 1; i < st.length; i++) { g.lineWidth = 1.2 + 2.8 * st[i][2]; g.beginPath(); g.moveTo(st[i-1][0], st[i-1][1]); g.lineTo(st[i][0], st[i][1]); g.stroke(); }
+    }
+    async function loadCandidates() {
+        const box = document.getElementById('we-cands');
+        box.innerHTML = '<span style="color:#9b9ba3">making versions…</span>';
+        const res = await fetch(`/api/edit/${state.sessionId}/${ED.k}/candidates`, { method: 'POST' });
+        const data = await res.json();
+        if (data.error) { box.innerHTML = `<span style="color:#f87171">${data.error}</span>`; return; }
+        box.innerHTML = data.candidates.map((src, i) =>
+            `<img src="${src}" data-i="${i}" style="height:54px;background:#fff;border-radius:6px;cursor:pointer;border:2px solid transparent" title="Use this one"/>`).join('');
+        box.querySelectorAll('img').forEach(im => {
+            im.onmouseenter = () => im.style.borderColor = '#8b85ff'; im.onmouseleave = () => im.style.borderColor = 'transparent';
+            im.onclick = () => applyEdit('apply', { candidate: +im.dataset.i });
+        });
+    }
+    async function savePadWord() {
+        if (!ED.strokes.length) { document.getElementById('we-msg').textContent = 'Write the word first'; return; }
+        document.getElementById('we-msg').textContent = ED.mode === 'sentence' ? 'saving the words…' : 'saving…';
+        const body = { strokes: ED.strokes, baseline: ED.G.base, x_height: ED.G.xh };
+        if (ED.mode === 'sentence') return applySentence(body);
+        await applyEdit('pad', body);
+    }
+    async function applySentence(body) {
+        const res = await fetch(`/api/edit/${state.sessionId}/${ED.k}/sentence`, { method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (data.error) { document.getElementById('we-msg').textContent = data.error; return; }
+        for (const p in data.pages) { state.pages[p] = data.pages[p]; state.words[p] = data.words[p]; }
+        document.getElementById('word-editor').style.display = 'none';
+        showPage(data.page);
+        if (data.skipped && data.skipped.length)
+            alert('Kept the old version of: ' + data.skipped.join(', ') + ' (the quality check left those out)');
+    }
+    async function applyEdit(kind, body) {
+        const res = await fetch(`/api/edit/${state.sessionId}/${ED.k}/${kind}`, { method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (data.error) { document.getElementById('we-msg').textContent = data.error; return; }
+        state.pages[data.page] = data.preview;
+        state.words[data.page] = data.words;
+        if (data.prev) state.pages[data.page - 1] = data.prev;
+        document.getElementById('word-editor').style.display = 'none';
+        showPage(data.page);
+    }
+
+    function showPage(idx) {
+        if (!state.pages.length) return;
+        idx = Math.max(0, Math.min(idx, state.pages.length - 1));
+        state.currentPage = idx;
+
+        // Find the paper card
+        const paper = document.querySelector('.relative.w-\\[595px\\]') ||
+                      document.querySelector('[class*="w-[595px"]');
+        if (paper) {
+            paper.style.padding = '0';   // show the generated page edge to edge (no card padding)
+            paper.innerHTML = `
+                <img src="${state.pages[idx]}" alt="Page ${idx + 1}"
+                     style="width:100%; height:auto; display:block; border-radius:2px;" />
+                <div class="absolute bottom-4 right-6 text-black/15 font-mono text-xs">
+                    P.${String(idx + 1).padStart(2, '0')}
+                </div>
+                <div id="word-hits" class="absolute inset-0"></div>
+            `;
+            const img = paper.querySelector('img');
+            const place = () => placeWordHits(idx, img);
+            if (img.complete) place(); else img.onload = place;
+        }
+        updatePageLabel();
+    }
+
+    function updatePageLabel() {
+        if (pageLabel) {
+            const total = state.pages.length || 1;
+            pageLabel.textContent = `Page ${state.currentPage + 1} of ${total}`;
+        }
+    }
+
+    prevBtn?.addEventListener('click', () => showPage(state.currentPage - 1));
+    nextBtn?.addEventListener('click', () => showPage(state.currentPage + 1));
+
+    // ── Download PDF ─────────────────────────────────────────
+    document.querySelectorAll('button').forEach(b => {
+        if (b.textContent.includes('Download PDF') && !b.classList.contains('w-full')) {
+            b.addEventListener('click', async () => {
+                if (!state.sessionId) { alert('Generate a PDF first!'); return; }
+                // Download in this page (a new window is dropped by embedded browsers / popup blockers)
+                try {
+                    const res = await fetch('/api/download/' + state.sessionId);
+                    if (!res.ok) {
+                        alert(res.status === 404
+                            ? 'The server was restarted since you generated this — click Generate again, then download.'
+                            : 'Download failed (' + res.status + ').');
+                        return;
+                    }
+                    const url = URL.createObjectURL(await res.blob());
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'handscript_output.pdf';
+                    document.body.appendChild(a); a.click(); a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                } catch (e) { alert('Download failed: ' + e); }
+            });
+        }
+        // Zoom toggle
+        if (b.textContent.includes('Zoom')) {
+            b.addEventListener('click', () => {
+                const paper = document.querySelector('.relative.w-\\[595px\\]');
+                if (paper) {
+                    state.zoomed = !state.zoomed;
+                    paper.style.transform = state.zoomed ? 'scale(1.5)' : '';
+                    paper.style.transformOrigin = 'top center';
+                }
+            });
+        }
+    });
+
+    // ── Keyboard shortcut ────────────────────────────────────
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); generate(); }
+        if (state.pages.length) {
+            if (e.key === 'ArrowLeft') showPage(state.currentPage - 1);
+            if (e.key === 'ArrowRight') showPage(state.currentPage + 1);
+        }
+    });
+
+    // ── Init ─────────────────────────────────────────────────
+    loadBundledFonts();
+    loadGlyphBanks();
+    if (textarea) textarea.placeholder = 'Type or paste your text here... (Ctrl+Enter to generate)';
+})();
+</script>
+</body></html>

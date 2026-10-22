@@ -1,0 +1,9 @@
+Pillow>=10.0
+flask
+flask-cors
+numpy
+opencv-python
+PyMuPDF
+markdown-it-py
+fonttools
+scipy

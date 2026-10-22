@@ -1,0 +1,6 @@
+# Optional: Emuru handwriting model (wordmodel.py). Install torch with CUDA first:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+transformers>=4.40,<5
+diffusers<0.36
+huggingface_hub>=0.34,<1.0
+einops

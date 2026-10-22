@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HandScript · Character sheet</title>
+<style>
+  :root { --bg: #f6f5f2; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e2e0da; --accent: #4f46e5; --ok: #15803d; --bad: #b91c1c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151517; --panel: #1f1f23; --text: #ececf0; --muted: #9b9ba3; --line: #33333a; --accent: #8b85ff; --ok: #4ade80; --bad: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 10px; align-items: center; padding: 10px 20px; flex-wrap: wrap; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 650; }
+  header a { color: var(--accent); text-decoration: none; }
+  .links { margin-left: auto; display: flex; gap: 14px; }
+  select, input, button { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  main { max-width: 1240px; margin: 0 auto; padding: 16px 20px 40px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+  .pad { background: #fff; border-radius: 10px; border: 1px solid var(--line); overflow: hidden; }
+  canvas { display: block; width: 100%; touch-action: none; cursor: crosshair; }
+  #msg { font-size: 13px; min-height: 18px; }
+  #msg.ok { color: var(--ok); } #msg.err { color: var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Character sheet</h1>
+  <select id="bank"></select>
+  <select id="set">
+    <option value="missing">Letters I'm missing</option>
+    <option value="lower">a – z</option>
+    <option value="upper">A – Z</option>
+    <option value="digits">0 – 9 and punctuation</option>
+    <option value="all">Everything</option>
+    <option value="custom">Custom…</option>
+  </select>
+  <input id="custom" placeholder="characters, e.g. αβΣ∫→" style="display:none;width:180px"/>
+  <select id="copies"><option value="1">1 copy each</option><option value="2" selected>2 copies each</option><option value="3">3 copies each</option></select>
+  <button class="primary" id="save">Save sheet</button>
+  <button id="undo">Undo stroke</button>
+  <button id="clear">Clear</button>
+  <span id="msg"></span>
+  <div class="links"><a href="/capture">Word pad</a><a href="/bank">Manage handwriting</a><a href="/">← Generator</a></div>
+</header>
+<main>
+  <p class="hint">Write the character shown in each box, sitting on the red baseline with small letters up to the dashed line, the way you
+    normally write. Write the whole sheet, then <b>Save sheet</b>. Every box becomes one of your samples (empty boxes are skipped).
+    Double-click a box to clear just that box.</p>
+  <div class="pad"><canvas id="cv"></canvas></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), g = cv.getContext('2d');
+const CELL = { w: 88, h: 112, base: 78, xh: 34 };
+const SETS = {
+  lower: 'abcdefghijklmnopqrstuvwxyz',
+  upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  digits: '0123456789.,;:!?()-\'"/&%+=',
+};
+const S = { bank: null, chars: [], cols: 1, strokes: [], cur: null, penSeen: false, coverage: {} };
+
+async function loadBanks() {
+  const banks = await (await fetch('/api/banks')).json();
+  $('bank').innerHTML = banks.map(b => `<option>${b.name}</option>`).join('');
+  S.bank = banks[0]?.name;
+  await loadCoverage();
+  layout();
+}
+async function loadCoverage() {
+  if (!S.bank) return;
+  S.coverage = (await (await fetch(`/api/banks/${S.bank}/words`)).json()).coverage || {};
+}
+function charSet() {
+  const v = $('set').value;
+  if (v === 'custom') return [...new Set([...$('custom').value.replace(/\s/g, '')])].join('');
+  if (v === 'all') return SETS.lower + SETS.upper + SETS.digits;
+  if (v === 'missing') {
+    const have = new Set(Object.keys(S.coverage).join(''));
+    const few = c => (S.coverage[c] || 0) < 2;           // missing or only one copy
+    return [...(SETS.lower + SETS.upper + SETS.digits)].filter(c => !have.has(c) || few(c)).join('');
+  }
+  return SETS[v];
+}
+function layout() {
+  const copies = +$('copies').value;
+  S.chars = [...charSet()].flatMap(c => Array(copies).fill(c));
+  const width = cv.parentElement.clientWidth;
+  S.cols = Math.max(1, Math.floor(width / CELL.w));
+  const rows = Math.max(1, Math.ceil(S.chars.length / S.cols));
+  const dpr = window.devicePixelRatio || 1;
+  cv.style.height = rows * CELL.h + 'px';
+  cv.width = Math.round(width * dpr); cv.height = Math.round(rows * CELL.h * dpr);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  S.strokes = []; S.cur = null;
+  redraw();
+  setMsg(S.chars.length ? `${S.chars.length} boxes` : 'Nothing to write for this set — pick another', S.chars.length ? '' : 'err');
+}
+const cellOf = i => ({ x: (i % S.cols) * CELL.w, y: Math.floor(i / S.cols) * CELL.h });
+function cellAt(x, y) {
+  const c = Math.floor(x / CELL.w), r = Math.floor(y / CELL.h), i = r * S.cols + c;
+  return c < S.cols && i < S.chars.length ? i : -1;
+}
+function redraw() {
+  const W = cv.width, H = cv.height;
+  g.clearRect(0, 0, W, H);
+  S.chars.forEach((ch, i) => {
+    const { x, y } = cellOf(i);
+    g.strokeStyle = '#e5e3dc'; g.lineWidth = 1; g.setLineDash([]);
+    g.strokeRect(x + 0.5, y + 0.5, CELL.w - 1, CELL.h - 1);
+    g.fillStyle = '#9a98a0'; g.font = '13px system-ui'; g.fillText(ch, x + 6, y + 16);
+    const line = (yy, color, dash) => { g.strokeStyle = color; g.setLineDash(dash || []); g.beginPath(); g.moveTo(x + 4, yy); g.lineTo(x + CELL.w - 4, yy); g.stroke(); };
+    line(y + CELL.base - CELL.xh, 'rgba(79,70,229,.22)', [3, 5]);   // x-height: faint
+    g.lineWidth = 2; line(y + CELL.base, 'rgba(220,38,38,.85)'); g.lineWidth = 1;   // baseline: write on this
+  });
+  g.setLineDash([]); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#111';
+  for (const st of [...S.strokes, ...(S.cur ? [S.cur] : [])]) {
+    for (let k = 1; k < st.length; k++) {
+      g.lineWidth = 1.2 + 2.6 * st[k][2];
+      g.beginPath(); g.moveTo(st[k - 1][0], st[k - 1][1]); g.lineTo(st[k][0], st[k][1]); g.stroke();
+    }
+    if (st.length === 1) { g.beginPath(); g.arc(st[0][0], st[0][1], 1.4, 0, 7); g.fill(); }
+  }
+}
+function pt(e) {
+  const r = cv.getBoundingClientRect();
+  let p = e.pressure; if (e.pointerType === 'mouse' || !p) p = 0.5;
+  return [Math.round((e.clientX - r.left) * 10) / 10, Math.round((e.clientY - r.top) * 10) / 10, Math.round(p * 1000) / 1000];
+}
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'pen') S.penSeen = true;
+  if (e.pointerType === 'touch' && S.penSeen) return;
+  cv.setPointerCapture(e.pointerId); S.cur = [pt(e)]; redraw();
+});
+cv.addEventListener('pointermove', e => {
+  if (!S.cur) return;
+  const co = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  for (const ev of (co.length ? co : [e])) S.cur.push(pt(ev));
+  redraw();
+});
+const end = () => { if (S.cur) { S.strokes.push(S.cur); S.cur = null; redraw(); } };
+cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+cv.addEventListener('dblclick', e => {
+  const [x, y] = pt(e), i = cellAt(x, y);
+  if (i < 0) return;
+  S.strokes = S.strokes.filter(st => owner(st) !== i); redraw();
+});
+// a stroke belongs to the box holding most of its points (strokes may overshoot a little)
+function owner(st) {
+  const votes = {};
+  for (const p of st) { const i = cellAt(p[0], p[1]); if (i >= 0) votes[i] = (votes[i] || 0) + 1; }
+  let best = -1, n = 0; for (const k in votes) if (votes[k] > n) { n = votes[k]; best = +k; }
+  return best;
+}
+async function save() {
+  const byCell = {};
+  for (const st of S.strokes) { const i = owner(st); if (i >= 0) (byCell[i] = byCell[i] || []).push(st); }
+  const items = Object.entries(byCell).map(([i, sts]) => {
+    const { x, y } = cellOf(+i);
+    return { text: S.chars[+i], strokes: sts.map(st => st.map(p => [p[0] - x, p[1] - y, p[2]])),
+             baseline: CELL.base, x_height: CELL.xh };
+  });
+  if (!items.length) return setMsg('Write something first', 'err');
+  setMsg(`Saving ${items.length} samples…`);
+  const res = await fetch(`/api/banks/${S.bank}/samples/batch`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
+  const data = await res.json();
+  if (data.error) return setMsg(data.error, 'err');
+  setMsg(`Saved ${data.saved} samples${data.skipped ? `, skipped ${data.skipped}` : ''}`
+    + (data.realigned ? ` — ${data.realigned} were not on the red line and were moved onto it` : '')
+    + '. Fix any in Manage handwriting.', 'ok');
+  await loadCoverage();
+  S.strokes = []; redraw();
+}
+function setMsg(t, cls = '') { $('msg').textContent = t; $('msg').className = cls; }
+$('save').onclick = save;
+$('undo').onclick = () => { S.strokes.pop(); redraw(); };
+$('clear').onclick = () => { S.strokes = []; redraw(); };
+$('set').onchange = () => { $('custom').style.display = $('set').value === 'custom' ? '' : 'none'; layout(); };
+$('custom').oninput = layout;
+$('copies').onchange = layout;
+$('bank').onchange = async e => { S.bank = e.target.value; await loadCoverage(); layout(); };
+document.addEventListener('keydown', e => { if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); S.strokes.pop(); redraw(); } });
+window.addEventListener('resize', () => { const keep = S.strokes; layout(); S.strokes = keep; redraw(); });
+loadBanks();
+</script>
+</body>
+</html>

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HandScript · Practice notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Patrick+Hand&family=Andika&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e2e0da;
+    --accent: #4f46e5; --ok: #15803d; --bad: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151517; --panel: #1f1f23; --text: #ececf0; --muted: #9b9ba3; --line: #33333a;
+            --accent: #8b85ff; --ok: #4ade80; --bad: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column;
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 12px; align-items: center; padding: 10px 18px; flex-wrap: wrap;
+           border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  header a { color: var(--accent); text-decoration: none; }
+  header .links { margin-left: auto; display: flex; gap: 16px; }
+  select, input[type=text], button, textarea {
+    font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 5px 9px;
+  }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .layout { flex: 1; display: flex; min-height: 0; }
+  aside { width: 300px; flex: none; overflow-y: auto; padding: 14px; border-right: 1px solid var(--line);
+          background: var(--panel); }
+  aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+             margin: 16px 0 8px; font-weight: 650; }
+  aside h2:first-child { margin-top: 0; }
+  .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .row label { font-size: 12px; color: var(--muted); }
+  .grow { flex: 1; min-width: 0; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  textarea { width: 100%; height: 110px; resize: vertical; font-size: 12px; }
+  #drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 10px; text-align: center;
+          color: var(--muted); font-size: 12px; margin-bottom: 8px; cursor: pointer; }
+  #drop.over { border-color: var(--accent); color: var(--accent); }
+  .muted { color: var(--muted); font-size: 12px; }
+  .kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 11px; }
+  main { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .page { position: relative; width: min(1100px, 100%); background: #fff; border-radius: 4px;
+          box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08); }
+  .page canvas { display: block; width: 100%; touch-action: none; cursor: crosshair; border-radius: 4px; }
+  .page .num { position: absolute; right: 10px; bottom: 6px; font: 11px monospace; color: #aaa; pointer-events: none; }
+  #progress { font-size: 12px; }
+  #checks div { font-size: 12px; padding: 2px 0; }
+  #checks .bad { color: var(--bad); }
+  #msg { font-size: 12px; min-height: 18px; margin-top: 6px; }
+  #msg.err { color: var(--bad); } #msg.ok { color: var(--ok); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Practice notebook</h1>
+  <select id="nb"></select>
+  <button id="newnb">New</button>
+  <span class="muted" id="saved"></span>
+  <div class="links"><a href="/capture">Pad</a><a href="/bank">Manage handwriting</a><a href="/">← Generator</a></div>
+</header>
+
+<div class="layout">
+<aside>
+  <h2>What to write</h2>
+  <div id="drop">Drop a PDF, .txt or .md here — or click to choose</div>
+  <input type="file" id="file" accept=".pdf,.txt,.md,.markdown" hidden/>
+  <textarea id="src" placeholder="…or paste the text here"></textarea>
+  <div class="row"><button class="primary grow" id="usetext">Lay out this text</button></div>
+
+  <h2>Guide text</h2>
+  <div class="row"><label class="grow">Show</label>
+    <select id="reveal">
+      <option value="0">next few words</option>
+      <option value="1">the sentence</option>
+      <option value="2">the paragraph</option>
+      <option value="3">the whole page</option>
+      <option value="4">everything</option>
+    </select></div>
+  <div class="muted" style="margin:-2px 0 8px"><span class="kbd">Tab</span> show more · <span class="kbd">Shift+Tab</span> less</div>
+  <div class="row"><label class="grow">Style</label><select id="font"></select></div>
+  <label class="muted">Darkness</label><input type="range" id="opacity" min="0.08" max="0.7" step="0.02" value="0.3"/>
+  <label class="muted">Line spacing</label><input type="range" id="pitch" min="40" max="90" step="2" value="58"/>
+  <label class="muted">Letter size</label><input type="range" id="letter" min="0.26" max="0.46" step="0.01" value="0.34"/>
+  <label class="muted">Letter width</label><input type="range" id="wscale" min="0.8" max="1.6" step="0.05" value="1.15"/>
+  <div class="row"><label><input type="checkbox" id="hidedone" checked/> hide guide once written</label></div>
+  <div class="row"><label><input type="checkbox" id="xguide" checked/> x-height guide line</label></div>
+
+  <h2>Pen</h2>
+  <div class="row">
+    <button id="tpen" class="on">Pen</button><button id="terase">Eraser</button>
+    <button id="undo" title="Ctrl+Z">Undo</button><button id="redo" title="Ctrl+Y">Redo</button>
+  </div>
+  <div class="row"><label class="grow">Ink</label>
+    <select id="color"><option value="#141416">black</option><option value="#0c0276">ballpoint blue</option></select></div>
+  <label class="muted">Pen width</label><input type="range" id="pw" min="1" max="5" step="0.25" value="2.25"/>
+
+  <h2>Progress</h2>
+  <div id="progress" class="muted">No text yet</div>
+  <div class="row" style="margin-top:6px"><button id="back">← Back a word</button><button id="skip">Skip word →</button></div>
+  <div class="muted" style="margin:4px 0 6px">Copying from the middle of the text? Just start writing — after a short pause your writing is read and the guide continues from there. Or:</div>
+  <div class="row"><input type="text" id="jump" class="grow" placeholder="Jump to… (type a few words)"/><button id="jumpgo">Go</button></div>
+
+  <h2>Check my writing</h2>
+  <div class="row"><button id="check" class="grow">Check readability</button></div>
+  <div class="muted">Your handwriting reader reads back each word you wrote; hard-to-read words get a red underline.</div>
+  <div id="checks" style="margin-top:6px"></div>
+  <div class="row" style="margin-top:8px"><select id="bank" class="grow"></select></div>
+  <div class="row"><button id="tobank" class="grow">Add well-written words to my handwriting</button></div>
+
+  <h2>Export</h2>
+  <div class="row"><label><input type="checkbox" id="pdfguide"/> include guide text</label></div>
+  <div class="row"><button id="pdf" class="grow">Download PDF</button><button id="addpage">+ Page</button></div>
+  <div id="msg"></div>
+</aside>
+<main id="pages"></main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+// Page coordinates (independent of screen size): A4 portrait
+const PW = 1000, PH = 1414, ML = 92, MR = 56, MT = 118, MB = 70;
+const BUILTIN_FONTS = [['Architects Daughter', 'Architect lettering'], ['Patrick Hand', 'Neat print'],
+                       ['Andika', 'School print']];
+const S = {
+  name: 'Practice', text: '', strokes: [], undo: [], redo: [], checks: {}, done: {}, extraPages: 0,
+  set: { reveal: 1, font: 'Architects Daughter', opacity: 0.3, pitch: 58, letter: 0.34, wscale: 1.15,
+         hidedone: true, xguide: true, color: '#141416', pw: 2.25 },
+};
+let words = [], lines = [], nPages = 1, xh = 20, fontPx = 40, cur = 0;
+let tool = 'pen', penSeen = false, drawing = null, touchY = null, saveTimer = null, findTimer = null;
+const canvases = [];
+
+// ── text → guide words ─────────────────────────────────────────────
+function cleanText(md) {
+  return md.replace(/```[^\n]*\n?/g, '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')            // images / pad sketches
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')          // links
+    .replace(/^\s*[-*+]\s+/gm, '• ')                   // bullets
+    .replace(/^\s*#+\s*/gm, '')                        // headings
+    .replace(/^\s*\|?[-:| ]+\|?\s*$/gm, '')            // table rules
+    .replace(/\|/g, ' ').replace(/[*_`]/g, '').replace(/\$/g, '');
+}
+
+function fontCss(px) { return `${px}px "${S.set.font}"`; }
+
+// The text is laid out from "anchors": {word, page, li, x}. By default one anchor puts
+// word 0 at the top of page 1; when the writer starts copying from somewhere else in the
+// text, an anchor is added where they are writing (findWhereIAm / jump box).
+function tokens() {
+  const out = [];
+  let sent = 0, para = 0;
+  const paras = cleanText(S.text).split(/\n\s*\n/).map(p => p.split(/\s+/).filter(Boolean)).filter(p => p.length);
+  for (const p of paras) {
+    p.forEach((t, j) => {
+      out.push({ t, sent, para, paraStart: j === 0 && para > 0,
+                 qBreak: j > 0 && /\?["')\]]*$/.test(p[j - 1]) });
+      if (/[.!?:]["')\]]*$/.test(t)) sent++;
+    });
+    sent++; para++;
+  }
+  return out;
+}
+const posKey = a => (a.page * 1000 + a.li) * 10000 + a.x;
+
+function layout() {
+  const ctx = document.createElement('canvas').getContext('2d');
+  const pitch = +S.set.pitch;
+  xh = pitch * S.set.letter;
+  ctx.font = fontCss(100);
+  const mx = ctx.measureText('x');
+  fontPx = xh / Math.max(0.2, (mx.actualBoundingBoxAscent || 50) / 100);
+  ctx.font = fontCss(fontPx);
+  const ws = +S.set.wscale, gap = xh * 1.25 * ws;
+  const nLines = Math.floor((PH - MT - MB) / pitch) + 1;
+  words = tokens().map((t, i) => ({ ...t, i, page: null }));
+  lines = [];
+  if (!S.anchors || !S.anchors.length) S.anchors = [{ word: 0, page: 0, li: 0, x: ML }];
+  const anchors = S.anchors.slice().sort((a, b) => posKey(a) - posKey(b));
+  anchors.forEach((a, k) => {
+    const next = anchors[k + 1];
+    const stopWord = Math.min(words.length, ...S.anchors.filter(b => b.word > a.word).map(b => b.word));
+    let page = a.page, li = a.li, x = a.x;
+    const newLine = () => { li++; x = ML; if (li >= nLines) { page++; li = 0; } };
+    for (let i = a.word; i < stopWord; i++) {
+      const w = words[i], wd = ctx.measureText(w.t).width * ws;
+      if (i > a.word && w.paraStart) { newLine(); newLine(); }        // blank line between paragraphs
+      else if ((i > a.word && w.qBreak) || (x > ML && x + wd > PW - MR)) newLine();
+      // the next anchor's line belongs to it (the writer's own ink is on it)
+      if (next && (page > next.page || (page === next.page && li >= next.li))) break;
+      Object.assign(w, { page, li, x, base: MT + li * pitch, w: wd });
+      x += wd + gap;
+    }
+  });
+  const placed = words.filter(w => w.page !== null);
+  nPages = Math.max(1, ...placed.map(w => w.page + 1), ...S.strokes.map(s => s.page + 1)) + S.extraPages;
+  buildPages();
+  recomputeProgress();
+}
+
+// ── pages & drawing ────────────────────────────────────────────────
+function buildPages() {
+  const host = $('pages');
+  while (canvases.length > nPages) { canvases.pop().parentElement.remove(); }
+  while (canvases.length < nPages) {
+    const div = document.createElement('div'); div.className = 'page';
+    const cv = document.createElement('canvas');
+    const num = document.createElement('span'); num.className = 'num'; num.textContent = canvases.length + 1;
+    div.append(cv, num); host.append(div);
+    hookCanvas(cv, canvases.length);
+    canvases.push(cv);
+  }
+  sizeCanvases();
+}
+
+function sizeCanvases() {
+  // supersampled backing store: strokes stay crisp (the browser downsamples smoothly)
+  const ss = Math.min(3, Math.max(2, (window.devicePixelRatio || 1) * 1.5));
+  for (const cv of canvases) {
+    const w = cv.parentElement.clientWidth;
+    cv.style.height = (w * PH / PW) + 'px';
+    cv.width = Math.round(w * ss); cv.height = Math.round(w * PH / PW * ss);
+  }
+  redrawAll();
+}
+
+function visible(w) {
+  if (!words.length) return false;
+  const c = words[Math.min(cur, words.length - 1)];
+  if (S.set.hidedone && S.done[w.i]) return false;
+  if (w.i < cur) return !S.set.hidedone;
+  const lvl = +S.set.reveal;
+  if (lvl >= 4) return true;
+  if (lvl === 3) return w.page === c.page;
+  if (w.i - cur < 3) return true;                       // always the next few words
+  if (lvl === 2) return w.para === c.para;
+  if (lvl === 1) return w.sent === c.sent;
+  return false;
+}
+
+function drawRuling(g, k) {
+  g.lineWidth = 1 / k;
+  g.strokeStyle = 'rgba(220,60,60,.35)';
+  g.beginPath(); g.moveTo(ML - 22, 0); g.lineTo(ML - 22, PH); g.stroke();
+  const pitch = +S.set.pitch;
+  for (let y = MT; y <= PH - MB + 1; y += pitch) {
+    g.strokeStyle = 'rgba(70,110,200,.28)';
+    g.beginPath(); g.moveTo(0, y); g.lineTo(PW, y); g.stroke();
+    if (S.set.xguide) {
+      g.save(); g.setLineDash([4 / k * 1.5, 6 / k * 1.5]); g.strokeStyle = 'rgba(70,110,200,.13)';
+      g.beginPath(); g.moveTo(ML - 10, y - xh); g.lineTo(PW - MR + 10, y - xh); g.stroke(); g.restore();
+    }
+  }
+}
+
+function drawGhost(g, page, forExport) {
+  g.font = fontCss(fontPx); g.textBaseline = 'alphabetic';
+  for (const w of words) {
+    if (w.page !== page || !(forExport ? true : visible(w))) continue;
+    const isCur = !forExport && w.i === cur;
+    g.fillStyle = isCur ? `rgba(79,70,229,${Math.min(0.85, S.set.opacity * 2)})`
+                        : `rgba(60,60,70,${S.set.opacity})`;
+    g.save(); g.translate(w.x, w.base); g.scale(+S.set.wscale, 1); g.fillText(w.t, 0, 0); g.restore();
+  }
+}
+
+// Pen points arrive on whole screen pixels; drawing straight segments between them
+// looks jagged. Draw smooth curves through the midpoints (the points are controls).
+const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+function curveSeg(g, p, i, w) {
+  // the piece of the curve around point i (needs p[i-1] and p[i+1])
+  const a = i === 1 ? p[0] : mid(p[i - 2], p[i - 1]), c = mid(p[i - 1], p[i]);
+  g.lineWidth = w * (0.6 + 0.8 * p[i - 1][2]);
+  g.beginPath(); g.moveTo(a[0], a[1]); g.quadraticCurveTo(p[i - 1][0], p[i - 1][1], c[0], c[1]); g.stroke();
+}
+function drawStroke(g, s) {
+  g.strokeStyle = s.color; g.fillStyle = s.color; g.lineCap = 'round'; g.lineJoin = 'round';
+  const p = s.pts, n = p.length;
+  if (n === 1) { g.beginPath(); g.arc(p[0][0], p[0][1], s.w * 0.6, 0, 7); g.fill(); return; }
+  for (let i = 1; i < n; i++) curveSeg(g, p, i, s.w);
+  const a = mid(p[n - 2], p[n - 1]);
+  g.lineWidth = s.w * (0.6 + 0.8 * p[n - 1][2]);
+  g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(p[n - 1][0], p[n - 1][1]); g.stroke();
+}
+function smoothPts(p) {
+  // two light [1 2 1] passes: removes the pixel staircase, keeps the shape and the ends
+  for (let pass = 0; pass < 2; pass++) {
+    const q = p.map(v => v.slice());
+    for (let i = 1; i < p.length - 1; i++)
+      for (let k = 0; k < 2; k++) q[i][k] = Math.round((p[i - 1][k] + 2 * p[i][k] + p[i + 1][k]) / 4 * 10) / 10;
+    p = q;
+  }
+  return p;
+}
+
+function drawChecks(g, page) {
+  for (const [i, c] of Object.entries(S.checks)) {
+    const w = words[i];
+    if (!w || w.page !== page || c.miss <= 0.34) continue;
+    const y = w.base + xh * 0.55;
+    g.strokeStyle = 'rgba(200,30,30,.75)'; g.lineWidth = 1.6;
+    g.beginPath();
+    for (let x = w.x; x <= w.x + w.w; x += 4) g.lineTo(x, y + ((x - w.x) / 4 % 2 ? 2 : -2));
+    g.stroke();
+  }
+}
+
+function redrawPage(i) {
+  const cv = canvases[i]; if (!cv) return;
+  const g = cv.getContext('2d'), k = cv.width / PW;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+  g.setTransform(k, 0, 0, k, 0, 0);
+  drawRuling(g, k); drawGhost(g, i, false); drawChecks(g, i);
+  for (const s of S.strokes) if (s.page === i) drawStroke(g, s);
+}
+function redrawAll() { for (let i = 0; i < canvases.length; i++) redrawPage(i); }
+
+// ── following the writer: ink over a guide word = that word is written ──
+function wordAt(page, x, y) {
+  const pitch = +S.set.pitch;
+  const li = Math.round((y - (MT - 0.5 * xh)) / pitch);
+  let best = null;
+  for (const w of words) {
+    if (w.page !== page || w.li !== li) continue;
+    if (x >= w.x - 0.5 * xh && x <= w.x + w.w + 0.5 * xh) { best = w; break; }
+  }
+  return best;
+}
+
+function recomputeProgress() {
+  const cover = {};
+  S.owner = {};
+  S.strokes.forEach((s, si) => {
+    if (s.used) return;                                  // matched elsewhere in the text
+    // walk along the stroke (fast strokes have far-apart points) in ~3 px steps
+    const hits = {};
+    let total = 0;
+    const visit = (x, y) => {
+      total++;
+      const w = wordAt(s.page, x, y);
+      if (!w) return;
+      (cover[w.i] = cover[w.i] || new Set()).add(Math.floor(x / 4));
+      hits[w.i] = (hits[w.i] || 0) + 1;
+    };
+    const p = s.pts;
+    visit(p[0][0], p[0][1]);
+    for (let j = 1; j < p.length; j++) {
+      const dx = p[j][0] - p[j - 1][0], dy = p[j][1] - p[j - 1][1];
+      const n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 3));
+      for (let t = 1; t <= n; t++) visit(p[j - 1][0] + dx * t / n, p[j - 1][1] + dy * t / n);
+    }
+    let bi = null, bn = 0;
+    for (const [i, n] of Object.entries(hits)) if (n > bn) { bi = +i; bn = n; }
+    if (bi !== null && bn >= total * 0.5) S.owner[si] = bi;
+  });
+  const manual = S.done;
+  S.done = {};
+  let last = -1;
+  for (const w of words) {
+    const c = cover[w.i] ? cover[w.i].size : 0;
+    const m = typeof manual[w.i] === 'string' ? manual[w.i] : null;       // 'skip' / 'read'
+    if (m || (w.page !== null && c >= 0.45 * (w.w + xh) / 4)) { S.done[w.i] = m || true; last = w.i; }
+  }
+  const prevPage = words[cur] ? words[cur].page : 0;
+  cur = Math.min(words.length, last + 1);
+  showProgress();
+  if (words[cur] && words[cur].page !== null && words[cur].page !== prevPage)
+    canvases[words[cur].page]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function showProgress() {
+  if (!words.length) { $('progress').textContent = 'No text yet — drop a PDF or paste text'; return; }
+  const n = Object.keys(S.done).length;
+  $('progress').innerHTML = cur >= words.length
+    ? `All ${words.length} words written 🎉`
+    : `Word <b>${cur + 1}</b> of ${words.length} · next: <b>${words[cur].t.replace(/</g, '&lt;')}</b>` +
+      (words[cur].page !== null ? ` (page ${words[cur].page + 1})` : '') + ` · ${n} written`;
+}
+
+// ── pen input ──────────────────────────────────────────────────────
+function toPage(cv, e) {
+  const r = cv.getBoundingClientRect();
+  let p = e.pressure;
+  if (e.pointerType === 'mouse' || !p) p = 0.5;
+  return [Math.round((e.clientX - r.left) * PW / r.width * 10) / 10,
+          Math.round((e.clientY - r.top) * PW / r.width * 10) / 10, Math.round(p * 1000) / 1000];
+}
+
+function eraseAt(page, x, y) {
+  const r = 10, removed = [];
+  for (let i = S.strokes.length - 1; i >= 0; i--) {
+    const s = S.strokes[i];
+    if (s.page !== page) continue;
+    if (s.pts.some(([px, py]) => (px - x) ** 2 + (py - y) ** 2 < r * r)) removed.push({ i, s: S.strokes.splice(i, 1)[0] });
+  }
+  return removed;
+}
+
+function hookCanvas(cv, page) {
+  cv.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'pen') penSeen = true;
+    if (e.pointerType === 'touch' && penSeen) { touchY = e.clientY; return; }   // palm / finger: scroll
+    cv.setPointerCapture(e.pointerId);
+    const erasing = tool === 'erase' || (e.buttons & 32) || e.button === 5;
+    const pt = toPage(cv, e);
+    if (erasing) {
+      drawing = { erase: true, page, removed: eraseAt(page, pt[0], pt[1]) };
+      redrawPage(page);
+    } else {
+      drawing = { page, color: S.set.color, w: +S.set.pw, pts: [pt], smooth: 1 };
+    }
+  });
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch' && penSeen && touchY !== null) {
+      $('pages').scrollBy(0, touchY - e.clientY); touchY = e.clientY; return;
+    }
+    if (!drawing) return;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    if (drawing.erase) {
+      for (const ev of (evs.length ? evs : [e])) { const p = toPage(cv, ev); drawing.removed.push(...eraseAt(page, p[0], p[1])); }
+      redrawPage(page); return;
+    }
+    const g = cv.getContext('2d'), k = cv.width / PW;
+    g.setTransform(k, 0, 0, k, 0, 0);
+    g.strokeStyle = drawing.color; g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const ev of (evs.length ? evs : [e])) {
+      const p = toPage(cv, ev), q = drawing.pts[drawing.pts.length - 1];
+      if (p[0] === q[0] && p[1] === q[1]) continue;
+      p[2] = Math.round((0.7 * q[2] + 0.3 * p[2]) * 1000) / 1000;   // pressure changes smoothly
+      drawing.pts.push(p);
+      curveSeg(g, drawing.pts, drawing.pts.length - 1, drawing.w);
+    }
+  });
+  const end = () => {
+    touchY = null;
+    if (!drawing) return;
+    if (drawing.erase) {
+      if (drawing.removed.length) { S.undo.push({ type: 'erase', items: drawing.removed }); S.redo = []; }
+    } else {
+      drawing.pts = smoothPts(drawing.pts);
+      S.strokes.push(drawing); S.undo.push({ type: 'add', s: drawing }); S.redo = [];
+      clearTimeout(findTimer); findTimer = setTimeout(findWhereIAm, 1300);
+    }
+    drawing = null;
+    changed(page);
+  };
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+}
+
+function changed(page) {
+  const before = cur;
+  recomputeProgress();
+  if (cur !== before) redrawAll(); else redrawPage(page);
+  scheduleSave();
+}
+
+function undo() {
+  const op = S.undo.pop(); if (!op) return;
+  if (op.type === 'add') S.strokes.splice(S.strokes.lastIndexOf(op.s), 1);
+  else for (const it of op.items.slice().reverse()) S.strokes.splice(it.i, 0, it.s);
+  S.redo.push(op); changed(0); redrawAll();
+}
+function redo() {
+  const op = S.redo.pop(); if (!op) return;
+  if (op.type === 'add') S.strokes.push(op.s);
+  else for (const it of op.items) { const j = S.strokes.indexOf(it.s); if (j >= 0) S.strokes.splice(j, 1); }
+  S.undo.push(op); changed(0); redrawAll();
+}
+
+// ── saving ─────────────────────────────────────────────────────────
+function payload() {
+  const manual = {};
+  for (const [i, v] of Object.entries(S.done)) if (typeof v === 'string') manual[i] = v;
+  return { name: S.name, text: S.text, set: S.set, strokes: S.strokes, checks: S.checks,
+           manual, anchors: S.anchors, extraPages: S.extraPages };
+}
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  $('saved').textContent = 'unsaved…';
+  saveTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`/api/notebooks/${encodeURIComponent(S.name)}`, { method: 'PUT',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload()) });
+      $('saved').textContent = r.ok ? 'saved' : 'not saved!';
+    } catch (e) { $('saved').textContent = 'not saved!'; }
+  }, 1200);
+}
+async function loadNotebook(name) {
+  S.name = name;
+  const r = await fetch(`/api/notebooks/${encodeURIComponent(name)}`);
+  const d = r.ok ? await r.json() : {};
+  S.text = d.text || ''; S.strokes = d.strokes || []; S.checks = d.checks || {};
+  for (const st of S.strokes) if (!st.smooth) { st.pts = smoothPts(st.pts); st.smooth = 1; }
+  S.extraPages = d.extraPages || 0; S.undo = []; S.redo = [];
+  S.done = { ...(d.manual || {}) }; for (const i of d.skips || []) S.done[i] = 'skip';
+  S.anchors = d.anchors || null;
+  Object.assign(S.set, d.set || {});
+  $('src').value = S.text;
+  syncControls();
+  await ensureFont();
+  layout();
+  $('saved').textContent = r.ok ? 'saved' : '';
+}
+async function listNotebooks(select) {
+  const names = await (await fetch('/api/notebooks')).json();
+  if (!names.includes(S.name)) names.unshift(S.name);
+  $('nb').innerHTML = names.map(n => `<option>${n.replace(/</g, '&lt;')}</option>`).join('');
+  $('nb').value = select || S.name;
+}
+
+// ── controls ───────────────────────────────────────────────────────
+const SETTINGS = ['reveal', 'font', 'opacity', 'pitch', 'letter', 'wscale', 'color', 'pw'];
+function syncControls() {
+  for (const k of SETTINGS) $(k).value = S.set[k];
+  $('hidedone').checked = S.set.hidedone; $('xguide').checked = S.set.xguide;
+}
+async function ensureFont() {
+  try { await document.fonts.load(fontCss(40)); } catch (e) {}
+}
+async function loadFontChoices() {
+  let bundled = [];
+  try { bundled = await (await fetch('/api/fonts/bundled')).json(); } catch (e) {}
+  const files = (Array.isArray(bundled) ? bundled : []).map(f => f.name || f.file || f).filter(f => /\.(ttf|otf)$/i.test(f));
+  for (const f of files) {
+    // registered only; the file downloads when that style is picked (document.fonts.load)
+    try { document.fonts.add(new FontFace('bundled-' + f, `url(/fonts/${encodeURIComponent(f)})`)); } catch (e) {}
+  }
+  $('font').innerHTML = BUILTIN_FONTS.map(([f, n]) => `<option value="${f}">${n}</option>`).join('')
+    + files.map(f => `<option value="bundled-${f}">Font ${f.replace(/\.(ttf|otf)$/i, '')}</option>`).join('');
+}
+for (const k of SETTINGS) $(k).addEventListener('input', async () => {
+  S.set[k] = ['font', 'color'].includes(k) ? $(k).value : +$(k).value;
+  if (k === 'font') await ensureFont();
+  if (['font', 'pitch', 'letter', 'wscale'].includes(k)) layout(); else redrawAll();
+  scheduleSave();
+});
+$('hidedone').onchange = () => { S.set.hidedone = $('hidedone').checked; redrawAll(); scheduleSave(); };
+$('xguide').onchange = () => { S.set.xguide = $('xguide').checked; redrawAll(); scheduleSave(); };
+$('tpen').onclick = () => setTool('pen');
+$('terase').onclick = () => setTool('erase');
+function setTool(t) { tool = t; $('tpen').classList.toggle('on', t === 'pen'); $('terase').classList.toggle('on', t === 'erase'); }
+$('undo').onclick = undo; $('redo').onclick = redo;
+$('skip').onclick = () => { if (cur < words.length) { S.done[cur] = 'skip'; changed(words[cur].page); redrawAll(); } };
+$('back').onclick = () => {
+  const i = cur - 1; if (i < 0) return;
+  if (S.done[i] === 'skip') delete S.done[i];
+  else setMsg('That word has ink on it — erase it to go back', 'err');
+  changed(words[i].page); redrawAll();
+};
+$('addpage').onclick = () => { S.extraPages++; layout(); scheduleSave(); canvases[canvases.length - 1].scrollIntoView({ behavior: 'smooth' }); };
+$('newnb').onclick = async () => {
+  const n = prompt('Name for the new notebook:');
+  if (!n) return;
+  S.name = n.trim(); S.text = ''; S.strokes = []; S.checks = {}; S.done = {}; S.anchors = null; S.extraPages = 0; S.undo = []; S.redo = [];
+  $('src').value = ''; layout(); await listNotebooks(S.name); scheduleSave();
+};
+$('nb').onchange = () => loadNotebook($('nb').value);
+function setMsg(t, cls) { $('msg').textContent = t; $('msg').className = cls || ''; }
+
+document.addEventListener('keydown', e => {
+  if (['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    S.set.reveal = Math.max(0, Math.min(4, +S.set.reveal + (e.shiftKey ? -1 : 1)));
+    $('reveal').value = S.set.reveal; redrawAll(); scheduleSave();
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+  else if (e.key === 'e') setTool(tool === 'erase' ? 'pen' : 'erase');
+  else if (e.key === 'p') setTool('pen');
+});
+
+// ── source text: paste, .txt/.md, or PDF (through the PDF import) ──
+$('usetext').onclick = () => setText($('src').value);
+function setText(t) {
+  if (!t.trim()) { setMsg('No text to lay out', 'err'); return; }
+  if (S.strokes.length && !confirm('Lay out the new text? Your writing stays, but the guide words move.')) return;
+  S.text = t; S.checks = {}; S.done = {}; S.anchors = null;
+  for (const st of S.strokes) delete st.used;
+  layout(); redrawAll(); scheduleSave();
+  setMsg(`Laid out ${words.length} words — start writing over the grey text`, 'ok');
+}
+async function takeFile(f) {
+  if (!f) return;
+  if (/\.pdf$/i.test(f.name)) {
+    setMsg('Reading the PDF…');
+    const fd = new FormData(); fd.append('pdf', f); fd.append('use_llm', '0');
+    const d = await (await fetch('/api/import-pdf', { method: 'POST', body: fd })).json();
+    if (d.error) { setMsg(d.error, 'err'); return; }
+    $('src').value = d.markdown;
+  } else {
+    $('src').value = await f.text();
+  }
+  setText($('src').value);
+  setMsg(`Laid out ${words.length} words — start writing over the grey text`, 'ok');
+}
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => takeFile(e.target.files[0]);
+for (const ev of ['dragover', 'dragenter']) $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); });
+for (const ev of ['dragleave', 'drop']) $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); });
+$('drop').addEventListener('drop', e => takeFile(e.dataTransfer.files[0]));
+
+// ── where am I? find the writer's words in the text ─────────────────
+const norm = t => t.toLowerCase().replace(/[^a-z0-9]/g, '');
+function lev(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++)
+      row.push(Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] !== b[j - 1])));
+    prev = row;
+  }
+  return prev[b.length];
+}
+function findInText(phrase) {
+  // best place in the text for `phrase` (letters only, spaces ignored: the reader often
+  // merges or splits words); returns {i, n, score} or null
+  const q = norm(phrase);
+  if (q.length < 5) return null;
+  const nw = words.map(w => norm(w.t));
+  let best = null;
+  for (let i = 0; i < nw.length; i++) {
+    if (!nw[i]) continue;
+    let src = '', n = 0;
+    while (i + n < nw.length && src.length < q.length) src += nw[i + n++];
+    const score = 1 - lev(q, src) / Math.max(q.length, src.length) + (i >= cur ? 0.02 : 0);
+    if (!best || score > best.score) best = { i, n, score };
+  }
+  return best && best.score >= 0.62 ? best : null;
+}
+function lineOf(s) {
+  const ym = s.pts.reduce((a, p) => a + p[1], 0) / s.pts.length;
+  return Math.round((ym - (MT - 0.5 * xh)) / +S.set.pitch);
+}
+function inkImage(ss) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of ss) for (const [x, y] of s.pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  const k = 32 / xh, pad = 10;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil((x1 - x0) * k + 2 * pad); c.height = Math.ceil((y1 - y0) * k + 2 * pad);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.setTransform(k, 0, 0, k, pad - x0 * k, pad - y0 * k);
+  for (const s of ss) drawStroke(g, { ...s, color: '#000' });
+  return { url: c.toDataURL('image/png'), right: x1 };
+}
+function anchorAt(match, page, li, x) {
+  // continue the guide at (page, li, x) from the word after the match; drop layouts of
+  // parts of the text that were never written on (they'd only clutter the page)
+  recomputeProgress();                                 // ink just re-assigned (used) no longer counts
+  for (let k = match.i; k < match.i + match.n; k++) if (!S.done[k]) S.done[k] = 'read';
+  const a = { word: match.i + match.n, page, li, x };
+  const all = (S.anchors || []).filter(b => b.word !== a.word).concat([a]).sort((p, q) => p.word - q.word);
+  S.anchors = all.filter(b => {
+    if (b === a) return true;
+    const end = Math.min(...all.filter(c => c.word > b.word).map(c => c.word), words.length);
+    for (let k = b.word; k < end; k++) if (S.done[k]) return true;
+    return false;
+  });
+  layout(); redrawAll(); scheduleSave();
+}
+async function findWhereIAm() {
+  // read the line of fresh ink; if it isn't the guide text under it but is found
+  // elsewhere in the text, continue the guide from there
+  if (!words.length || !S.strokes.length) return;
+  const last = S.strokes[S.strokes.length - 1];
+  if (last.used) return;
+  const li = lineOf(last);
+  const group = S.strokes.filter(s => !s.used && s.page === last.page && lineOf(s) === li && s.read !== 'guide');
+  const xs = group.flatMap(s => s.pts.map(p => p[0]));
+  if (!group.length || Math.max(...xs) - Math.min(...xs) < 3 * xh) return;    // wait for a few words
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const under = words.filter(w => w.page === last.page && w.li === li && w.x + w.w > x0 - xh && w.x < x1 + xh);
+  let d;
+  try {
+    const im = inkImage(group);
+    d = await (await fetch('/api/practice/read', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ image: im.url }) })).json();
+  } catch (e) { return; }
+  if (d.error || !d.text) return;
+  const q = norm(d.text);
+  if (under.length) {
+    const exp = norm(under.map(w => w.t).join(''));
+    if (q.length && 1 - lev(q, exp) / Math.max(q.length, exp.length) >= 0.5) return;   // tracing the guide: fine
+  }
+  const m = findInText(d.text);
+  if (!m) { setMsg(`Read “${d.text}” — not found in the text (keep writing, or use Jump to)`); return; }
+  group.forEach(s => s.used = 1);
+  anchorAt(m, last.page, li, x1 + xh * 1.25 * +S.set.wscale);
+  setMsg(`Found you at “${words.slice(m.i, m.i + m.n).map(w => w.t).join(' ')}” — the guide continues from there`, 'ok');
+}
+$('jumpgo').onclick = () => {
+  const m = findInText($('jump').value);
+  if (!m) { setMsg('Couldn’t find that in the text', 'err'); return; }
+  // start on the first empty line after the last writing
+  let page = 0, li = -1;
+  for (const s of S.strokes) { const l = lineOf(s); if (s.page > page || (s.page === page && l > li)) { page = s.page; li = l; } }
+  const nLines = Math.floor((PH - MT - MB) / +S.set.pitch) + 1;
+  li += 1; if (li >= nLines) { page++; li = 0; }
+  anchorAt({ i: m.i, n: 0 }, page, li, ML);
+  $('jump').value = '';
+  setMsg(`Guide now starts at “${words[m.i].t}”`, 'ok');
+};
+$('jump').addEventListener('keydown', e => { if (e.key === 'Enter') $('jumpgo').click(); });
+
+// ── check: the handwriting reader reads each written word back ─────
+function wordStrokes(i) { return S.strokes.filter((s, si) => S.owner[si] === +i); }
+function wordImage(i) {
+  const ss = wordStrokes(i); if (!ss.length) return null;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of ss) for (const [x, y] of s.pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  const k = 32 / xh, pad = 8;
+  const c = document.createElement('canvas');
+  c.width = Math.ceil((x1 - x0) * k + 2 * pad); c.height = Math.ceil((y1 - y0) * k + 2 * pad);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.setTransform(k, 0, 0, k, pad - x0 * k, pad - y0 * k);
+  for (const s of ss) drawStroke(g, { ...s, color: '#000' });
+  return c.toDataURL('image/png');
+}
+$('check').onclick = async () => {
+  const ids = Object.keys(S.done).filter(i => S.done[i] === true);
+  const items = [], idx = [];
+  for (const i of ids) { const im = wordImage(i); if (im) { items.push({ text: words[i].t, image: im }); idx.push(i); } }
+  if (!items.length) { setMsg('Write some words first', 'err'); return; }
+  setMsg(`Reading ${items.length} words…`);
+  const r = await fetch('/api/practice/check', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({ items }) });
+  const d = await r.json();
+  if (d.error) { setMsg(d.error, 'err'); return; }
+  idx.forEach((i, j) => S.checks[i] = d[j]);
+  const bad = idx.filter(i => S.checks[i].miss > 0.34);
+  $('checks').innerHTML = `<div>${idx.length - bad.length} of ${idx.length} words read correctly</div>` +
+    bad.slice(0, 40).map(i => `<div class="bad">“${words[i].t.replace(/</g, '&lt;')}” read as “${(S.checks[i].read || '?').replace(/</g, '&lt;')}”</div>`).join('');
+  setMsg(bad.length ? 'Red underlines: words to write more clearly' : 'Everything reads well 👍', bad.length ? '' : 'ok');
+  redrawAll(); scheduleSave();
+};
+async function loadBanks() {
+  try {
+    const banks = await (await fetch('/api/banks')).json();
+    $('bank').innerHTML = banks.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+  } catch (e) {}
+}
+$('tobank').onclick = async () => {
+  const good = Object.keys(S.checks).filter(i => S.checks[i].miss <= 0.2 && S.done[i] === true && !S.checks[i].banked);
+  if (!good.length) { setMsg('Run “Check readability” first — only words that read correctly are added', 'err'); return; }
+  if (!$('bank').value) { setMsg('No handwriting bank to add to', 'err'); return; }
+  const items = good.map(i => ({ text: words[i].t, strokes: wordStrokes(i).map(s => s.pts),
+                                 baseline: words[i].base, x_height: xh }));
+  setMsg(`Adding ${items.length} words…`);
+  const d = await (await fetch(`/api/practice/to-bank/${encodeURIComponent($('bank').value)}`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) })).json();
+  if (d.error) { setMsg(d.error, 'err'); return; }
+  good.forEach(i => S.checks[i].banked = true);
+  setMsg(`Added ${d.saved} words to your handwriting` + (d.failed.length ? ` (skipped ${d.failed.length})` : ''), 'ok');
+  scheduleSave();
+};
+
+// ── export ─────────────────────────────────────────────────────────
+$('pdf').onclick = async () => {
+  setMsg('Making the PDF…');
+  const pages = [];
+  for (let i = 0; i < nPages; i++) {
+    const c = document.createElement('canvas'); c.width = PW * 2; c.height = PH * 2;
+    const g = c.getContext('2d'), k = 2;
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.setTransform(k, 0, 0, k, 0, 0);
+    drawRuling(g, k);
+    if ($('pdfguide').checked) drawGhost(g, i, true);
+    for (const s of S.strokes) if (s.page === i) drawStroke(g, s);
+    pages.push(c.toDataURL('image/png'));
+  }
+  const r = await fetch('/api/practice/pdf', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                               body: JSON.stringify({ pages }) });
+  if (!r.ok) { setMsg('Export failed', 'err'); return; }
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement('a'); a.href = url; a.download = `${S.name}.pdf`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  setMsg('PDF downloaded', 'ok');
+};
+
+window.addEventListener('resize', sizeCanvases);
+(async () => {
+  await loadFontChoices();
+  await loadBanks();
+  const names = await (await fetch('/api/notebooks')).json();
+  S.name = names[0] || 'Practice';
+  await listNotebooks(S.name);
+  await loadNotebook(S.name);
+})();
+</script>
+</body>
+</html>

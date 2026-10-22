@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+# test outputs in the root (see CLAUDE.md) and generated documents
+/*.png
+/*.pdf
+generated/
+# personal practice notebooks
+notebooks/
+.claude/settings.local.json

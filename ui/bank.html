@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HandScript · My handwriting</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e2e0da;
+    --accent: #4f46e5; --ok: #15803d; --warn: #b45309; --bad: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151517; --panel: #1f1f23; --text: #ececf0; --muted: #9b9ba3; --line: #33333a;
+            --accent: #8b85ff; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 14px; align-items: center; padding: 12px 20px; flex-wrap: wrap;
+           border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  header a { color: var(--accent); text-decoration: none; }
+  header .links { margin-left: auto; display: flex; gap: 16px; }
+  select, input, button { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  button { cursor: pointer; }
+  main { max-width: 1200px; margin: 0 auto; padding: 20px; display: grid; gap: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  h2 { font-size: 13px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .hint { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .label { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .label .top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  .label .name { font-size: 20px; font-weight: 600; }
+  .label .count { color: var(--muted); font-size: 12px; }
+  .label .top a { margin-left: auto; font-size: 12px; color: var(--accent); text-decoration: none; }
+  .pieces { display: flex; flex-wrap: wrap; gap: 6px; }
+  .piece { background: #fff; border-radius: 6px; padding: 3px; border: 2px solid var(--ok); cursor: pointer; position: relative; }
+  .piece img { height: 38px; display: block; filter: invert(1); }   /* stored as white ink on black */
+  .piece.removed { border-color: var(--bad); opacity: .45; }
+  .piece.check { border-color: var(--warn); opacity: .6; }
+  .piece .src { position: absolute; top: -7px; right: -5px; font-size: 9px; background: var(--accent); color: #fff; border-radius: 6px; padding: 0 4px; }
+  .legend span { margin-right: 14px; font-size: 12px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+  .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 8px; }
+  .font { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+  .font img { background: #fff; border-radius: 6px; height: 40px; }
+  .font.off { opacity: .45; }
+  .font label { margin-left: auto; display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  #msg { font-size: 13px; color: var(--ok); min-height: 18px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>My handwriting</h1>
+  <select id="bank"></select>
+  <span id="msg"></span>
+  <div class="links"><a href="/sheet">Character sheet</a><a href="/capture">Writing pad</a><a href="/label">Label scans</a><a href="/">← Generator</a></div>
+</header>
+<main>
+  <section class="card">
+    <h2>Letters &amp; words in your bank</h2>
+    <p class="hint">Click a piece to stop using it (click again to bring it back). “Write more” opens the pad for that letter or word.
+      Removing never deletes anything.</p>
+    <div class="tools">
+      <input id="q" type="search" placeholder="find a letter or word…"/>
+      <select id="show">
+        <option value="all">All</option>
+        <option value="single">Single letters</option>
+        <option value="few">Only 1–2 copies</option>
+        <option value="problems">Has removed / left-out pieces</option>
+      </select>
+      <label style="display:flex;gap:6px;align-items:center;cursor:pointer" title="Where you have 2+ pad copies of a letter or word, scanned copies are not used">
+        <input type="checkbox" id="preferpad"/> Prefer my pad writing over scanned pieces</label>
+      <span class="legend"><span><i style="background:var(--ok)"></i>in use</span><span><i style="background:var(--warn)"></i>left out by the check</span><span><i style="background:var(--bad)"></i>removed by you</span><span><i style="background:var(--accent)"></i>pad</span></span>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+  <section class="card">
+    <h2>Fonts used for letters you haven't written</h2>
+    <p class="hint">Switch off fonts whose letters don't look like you. The generator picks among the remaining ones that match your hand best.</p>
+    <div class="fonts" id="fonts"></div>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let bank = null, groups = [];
+
+async function load() {
+  const banks = await (await fetch('/api/banks')).json();
+  $('bank').innerHTML = banks.map(b => `<option>${b.name}</option>`).join('');
+  bank = banks[0]?.name;
+  if (bank) await refresh();
+}
+async function refresh() {
+  $('preferpad').checked = (await (await fetch(`/api/banks/${bank}/prefer-pad`)).json()).on;
+  groups = await (await fetch(`/api/banks/${bank}/pieces`)).json();
+  render();
+  const fonts = await (await fetch(`/api/banks/${bank}/fonts`)).json();
+  $('fonts').innerHTML = fonts.map(f => `
+    <div class="font ${f.enabled ? '' : 'off'}">
+      <img src="/api/fonts/preview/${encodeURIComponent(f.font)}" alt="${f.font}"/>
+      <span>${f.font}</span>
+      <label><input type="checkbox" data-font="${f.font}" ${f.enabled ? 'checked' : ''}/> use</label>
+    </div>`).join('');
+  $('fonts').querySelectorAll('input').forEach(cb => cb.onchange = async () => {
+    await fetch(`/api/banks/${bank}/fonts`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ font: cb.dataset.font, enabled: cb.checked }) });
+    cb.closest('.font').classList.toggle('off', !cb.checked);
+    flash(cb.checked ? 'Font on' : 'Font off');
+  });
+}
+function render() {
+  const q = $('q').value.trim(), show = $('show').value;
+  const list = groups.filter(g => {
+    if (q && !g.label.includes(q)) return false;
+    const used = g.pieces.filter(p => p.used).length;
+    if (show === 'single') return g.label.length === 1;
+    if (show === 'few') return used <= 2;
+    if (show === 'problems') return g.pieces.some(p => !p.used);
+    return true;
+  });
+  $('grid').innerHTML = list.map(g => {
+    const used = g.pieces.filter(p => p.used).length;
+    return `<div class="label">
+      <div class="top"><span class="name">${g.label}</span><span class="count">${used} in use</span>
+        <a href="/capture?words=${encodeURIComponent(g.label)},${encodeURIComponent(g.label)}">Write more →</a></div>
+      <div class="pieces">${g.pieces.map(p => `
+        <div class="piece ${p.used ? '' : (p.status.startsWith('removed') ? 'removed' : 'check')}" data-file="${p.file}"
+             title="${p.status}${p.why.length ? ': ' + p.why.join('; ') : ''}${p.used ? ' — click to remove' : ' — click to use again'}">
+          <img src="/banks/${bank}/glyphs/${p.file}" alt=""/>${p.source === 'pad' ? '<span class="src">pad</span>' : ''}
+        </div>`).join('')}</div></div>`;
+  }).join('') || '<p class="hint">Nothing matches.</p>';
+  $('grid').querySelectorAll('.piece').forEach(el => el.onclick = async () => {
+    const removing = !el.classList.contains('removed') && !el.classList.contains('check');
+    await fetch(`/api/banks/${bank}/pieces/${encodeURIComponent(el.dataset.file)}`, { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ removed: removing }) });
+    flash(removing ? 'Removed — it will not be used' : 'Back in use');
+    await refresh();
+  });
+}
+function flash(t) { $('msg').textContent = t; setTimeout(() => $('msg').textContent = '', 2500); }
+$('q').oninput = render; $('show').onchange = render;
+$('preferpad').onchange = async () => {
+  await fetch(`/api/banks/${bank}/prefer-pad`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ on: $('preferpad').checked }) });
+  flash($('preferpad').checked ? 'Pad writing preferred' : 'Scanned pieces back in use');
+  await refresh();
+};
+$('bank').onchange = e => { bank = e.target.value; refresh(); };
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HandScript · Label glyphs</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e2e0da;
+    --accent: #4f46e5; --ok: #15803d; --warn: #b45309; --bad: #b91c1c; --cut: #2563eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151517; --panel: #1f1f23; --text: #ececf0; --muted: #9b9ba3; --line: #33333a;
+            --accent: #8b85ff; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --cut: #60a5fa; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 16px; align-items: center; padding: 12px 20px;
+           border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  header a { color: var(--accent); text-decoration: none; }
+  header a:first-of-type { margin-left: auto; }
+  select, input[type=text], button {
+    font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 10px;
+  }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; padding: 20px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .meta { color: var(--muted); font-size: 12px; display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .stage { background: #fff; border-radius: 8px; overflow-x: auto; padding: 24px 12px 8px; }
+  canvas { display: block; cursor: crosshair; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  #labels { flex: 1; min-width: 220px; font-size: 18px; letter-spacing: .5px; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .hint kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 11px; }
+  #msg { min-height: 20px; margin-top: 8px; font-size: 13px; }
+  #msg.err { color: var(--bad); } #msg.ok { color: var(--ok); }
+  h2 { font-size: 13px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .cov { display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 4px; margin-bottom: 14px; }
+  .cov span { text-align: center; border-radius: 6px; padding: 3px 0; font-size: 13px; border: 1px solid var(--line); }
+  .cov span small { display: block; font-size: 10px; color: var(--muted); }
+  .c0 { color: var(--bad); } .c1 { color: var(--warn); } .c3 { color: var(--ok); font-weight: 600; }
+  .multi { display: flex; flex-wrap: wrap; gap: 4px; }
+  .multi span { border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12px; }
+  .progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 6px 0 14px; }
+  .progress div { height: 100%; background: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Label your handwriting</h1>
+  <select id="bank"></select>
+  <select id="filter">
+    <option value="todo">To do</option>
+    <option value="done">Labeled</option>
+    <option value="skip">Skipped</option>
+    <option value="all">All</option>
+    <option value="auto">Auto-labeled (review)</option>
+  </select>
+  <span id="pos" class="meta" style="margin:0"></span>
+  <a href="/capture">Writing pad</a>
+  <a href="/">← Back to generator</a>
+</header>
+
+<main>
+  <section class="card">
+    <div class="meta" id="wordmeta"></div>
+    <div class="stage"><canvas id="cv"></canvas></div>
+    <div class="row">
+      <input id="labels" type="text" autocomplete="off" spellcheck="false" placeholder="one label per piece, e.g.  w r i te"/>
+      <button class="primary" id="save">Save ⏎</button>
+      <button id="skip">Skip (Esc)</button>
+    </div>
+    <div class="row">
+      <button id="prev">← Prev</button>
+      <button id="next">Next →</button>
+      <button id="clearcuts">No cuts</button>
+      <button id="autocuts">Reset cuts</button>
+    </div>
+    <div id="msg"></div>
+    <p class="hint">
+      Click the word to add a cut, click a cut to remove it. Type one label per piece, separated by spaces;
+      <kbd>_</kbd> ignores a piece. Joined letters can stay together: label a piece <kbd>th</kbd> or <kbd>the</kbd>.
+      Skip crossed-out or unreadable words. Red line = baseline, green = x-height (the engine sizes letters by these).
+      <kbd>Enter</kbd> save · <kbd>Esc</kbd> skip · <kbd>PgUp</kbd>/<kbd>PgDn</kbd> navigate.
+    </p>
+  </section>
+
+  <aside class="card">
+    <h2>Progress</h2>
+    <div id="progtext" class="meta" style="margin:0"></div>
+    <div class="progress"><div id="progbar" style="width:0"></div></div>
+    <h2>Letters collected</h2>
+    <div class="cov" id="cov"></div>
+    <h2>Joined pieces</h2>
+    <div class="multi" id="multi"></div>
+    <p class="hint">Aim for 3+ variants of every lowercase letter (green). Missing letters fall back to fonts.</p>
+  </aside>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const S = { bank: null, words: [], list: [], idx: 0, cuts: [], img: null, scale: 1, coverage: {} };
+const CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,:;()-\'"?!';
+
+async function loadBanks() {
+  const banks = await (await fetch('/api/banks')).json();
+  $('bank').innerHTML = banks.map(b => `<option value="${b.name}">${b.name} (${b.done}/${b.words})</option>`).join('')
+    || '<option>no banks — run glyphbank.py extract</option>';
+  if (banks.length) { S.bank = banks[0].name; await loadWords(); }
+}
+
+async function loadWords(keepId) {
+  const data = await (await fetch(`/api/banks/${S.bank}/words`)).json();
+  S.words = data.words; S.coverage = data.coverage;
+  // one "to do" option per source document (e.g. the clearer notebook pages)
+  const sources = [...new Set(S.words.map(w => w.source || 'scan'))];
+  const f = $('filter');
+  [...f.querySelectorAll('option[data-src]')].forEach(o => o.remove());
+  if (sources.length > 1) for (const src of sources) {
+    f.insertAdjacentHTML('beforeend', `<option data-src value="todo:${src}">To do — ${src === 'scan' ? 'first scan' : src}</option>`);
+  }
+  applyFilter(keepId);
+  renderCoverage();
+}
+
+function applyFilter(keepId) {
+  const f = $('filter').value;
+  const [st, src] = f.split(':');
+  S.list = st === 'auto'
+    ? S.words.filter(w => w.auto && w.status === 'done')
+    : S.words.filter(w => (st === 'all' || w.status === st) && (!src || (w.source || 'scan') === src));
+  const i = keepId ? S.list.findIndex(w => w.id === keepId) : -1;
+  S.idx = i >= 0 ? i : Math.min(S.idx, Math.max(0, S.list.length - 1));
+  show();
+}
+
+function show() {
+  const w = S.list[S.idx];
+  const done = S.words.filter(x => x.status !== 'todo').length;
+  $('progtext').textContent = `${done} of ${S.words.length} words handled`;
+  $('progbar').style.width = (100 * done / Math.max(1, S.words.length)) + '%';
+  $('pos').textContent = S.list.length ? `${S.idx + 1} / ${S.list.length}` : 'nothing here';
+  if (!w) { $('cv').width = 0; $('wordmeta').textContent = ''; return; }
+  $('wordmeta').innerHTML = `${w.auto ? '<span style="color:var(--warn)">auto-labeled — fix and save if wrong</span>' : ''}<span>${w.id}</span><span>page ${w.page}</span><span>status: ${w.status}</span><span>slant ${w.slant}°</span>`;
+  S.cuts = [...w.cuts];
+  $('labels').value = w.labels ? w.labels.join(' ') : '';
+  setMsg('');
+  const img = new Image();
+  img.onload = () => { S.img = img; draw(); $('labels').focus(); };
+  img.src = `/banks/${S.bank}/words/${w.id}.png?v=1`;
+}
+
+function draw() {
+  const w = S.list[S.idx], img = S.img, cv = $('cv');
+  if (!w || !img) return;
+  const maxW = cv.parentElement.clientWidth - 24;
+  S.scale = Math.max(0.5, Math.min(3, maxW / img.width, 220 / img.height));
+  const pad = 18;
+  cv.width = Math.round(img.width * S.scale);
+  cv.height = Math.round(img.height * S.scale) + pad;
+  const g = cv.getContext('2d');
+  g.clearRect(0, 0, cv.width, cv.height);
+  g.drawImage(img, 0, pad, cv.width, cv.height - pad);
+  const y = v => pad + v * S.scale;
+  g.lineWidth = 1;
+  g.strokeStyle = 'rgba(220,38,38,.75)'; g.beginPath(); g.moveTo(0, y(w.baseline)); g.lineTo(cv.width, y(w.baseline)); g.stroke();
+  g.strokeStyle = 'rgba(22,163,74,.6)'; g.beginPath(); g.moveTo(0, y(w.baseline - w.xh)); g.lineTo(cv.width, y(w.baseline - w.xh)); g.stroke();
+  // cuts and piece labels
+  const labels = $('labels').value.trim().split(/\s+/).filter(Boolean);
+  const edges = [0, ...[...S.cuts].sort((a, b) => a - b), img.width];
+  g.font = '600 13px system-ui'; g.textAlign = 'center';
+  for (let k = 0; k + 1 < edges.length; k++) {
+    const mid = (edges[k] + edges[k + 1]) / 2 * S.scale;
+    g.fillStyle = labels[k] === '_' ? '#999' : '#4f46e5';
+    g.fillText(labels[k] ?? (k + 1), mid, 13);
+  }
+  g.strokeStyle = '#2563eb'; g.lineWidth = 2;
+  for (const c of S.cuts) { g.beginPath(); g.moveTo(c * S.scale, pad); g.lineTo(c * S.scale, cv.height); g.stroke(); }
+  const need = edges.length - 1;
+  $('labels').placeholder = `${need} piece${need > 1 ? 's' : ''}: type ${need} label${need > 1 ? 's' : ''}`;
+}
+
+$('cv').addEventListener('click', e => {
+  const r = e.target.getBoundingClientRect();
+  const x = Math.round((e.clientX - r.left) / S.scale);
+  const near = S.cuts.findIndex(c => Math.abs(c - x) * S.scale < 7);
+  if (near >= 0) S.cuts.splice(near, 1); else S.cuts.push(x);
+  draw(); $('labels').focus();
+});
+
+async function save(status) {
+  const w = S.list[S.idx];
+  if (!w) return;
+  const labels = $('labels').value.trim().split(/\s+/).filter(Boolean);
+  if (status === 'done' && labels.length !== S.cuts.length + 1) {
+    return setMsg(`${S.cuts.length + 1} pieces but ${labels.length} labels`, 'err');
+  }
+  const res = await fetch(`/api/banks/${S.bank}/words/${w.id}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, cuts: S.cuts, labels }),
+  });
+  const data = await res.json();
+  if (data.error) return setMsg(data.error, 'err');
+  Object.assign(w, { status, cuts: [...S.cuts].sort((a, b) => a - b), labels: status === 'done' ? labels : null });
+  S.coverage = data.coverage;
+  renderCoverage();
+  // advance: in "todo" view the saved word drops out of the list
+  if ($('filter').value.startsWith('todo')) applyFilter(); else { S.idx = Math.min(S.idx + 1, S.list.length - 1); show(); }
+  setMsg(status === 'done' ? `Saved ${labels.filter(l => l !== '_').join(' ')}` : 'Skipped', 'ok');
+}
+
+function renderCoverage() {
+  const c = S.coverage;
+  $('cov').innerHTML = [...CHARS].map(ch => {
+    const n = c[ch] || 0, cls = n === 0 ? 'c0' : n < 3 ? 'c1' : 'c3';
+    return `<span class="${cls}">${ch}<small>${n}</small></span>`;
+  }).join('');
+  const multi = Object.entries(c).filter(([k]) => k.length > 1).sort((a, b) => b[1] - a[1]);
+  $('multi').innerHTML = multi.map(([k, n]) => `<span>${k} ×${n}</span>`).join('') || '<span class="hint">none yet</span>';
+}
+
+function setMsg(t, cls = '') { $('msg').textContent = t; $('msg').className = cls; }
+function go(d) { S.idx = Math.max(0, Math.min(S.list.length - 1, S.idx + d)); show(); }
+
+$('labels').addEventListener('input', draw);
+$('save').onclick = () => save('done');
+$('skip').onclick = () => save('skip');
+$('prev').onclick = () => go(-1);
+$('next').onclick = () => go(1);
+$('clearcuts').onclick = () => { S.cuts = []; draw(); };
+$('autocuts').onclick = () => { S.cuts = [...S.list[S.idx].cuts]; draw(); };
+$('filter').onchange = () => { S.idx = 0; applyFilter(); };
+$('bank').onchange = e => { S.bank = e.target.value; S.idx = 0; loadWords(); };
+window.addEventListener('resize', draw);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); save('done'); }
+  else if (e.key === 'Escape') { e.preventDefault(); save('skip'); }
+  else if (e.key === 'PageDown') { e.preventDefault(); go(1); }
+  else if (e.key === 'PageUp') { e.preventDefault(); go(-1); }
+});
+loadBanks();
+</script>
+</body>
+</html>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HandScript · Writing pad</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e2e0da;
+    --accent: #4f46e5; --ok: #15803d; --bad: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151517; --panel: #1f1f23; --text: #ececf0; --muted: #9b9ba3; --line: #33333a;
+            --accent: #8b85ff; --ok: #4ade80; --bad: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 16px; align-items: center; padding: 12px 20px; flex-wrap: wrap;
+           border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  header a { color: var(--accent); text-decoration: none; }
+  header .links { margin-left: auto; display: flex; gap: 16px; }
+  select, input[type=text], button {
+    font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 10px;
+  }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .prompt { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
+  .prompt .word { font-size: 34px; font-weight: 600; letter-spacing: .5px; }
+  .prompt .meta { color: var(--muted); font-size: 12px; }
+  .pad { position: relative; background: #fff; border-radius: 10px; border: 1px solid var(--line); }
+  canvas { display: block; width: 100%; height: 280px; touch-action: none; cursor: crosshair; border-radius: 10px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  #custom { width: 220px; }
+  #msg { min-height: 20px; margin-top: 8px; font-size: 13px; }
+  #msg.err { color: var(--bad); } #msg.ok { color: var(--ok); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 12px; }
+  .hint kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 11px; }
+  .queue { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 12px; }
+  .queue span { border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; font-size: 12px; color: var(--muted); }
+  .queue span.now { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Writing pad</h1>
+  <select id="bank"></select>
+  <span id="count" class="prompt meta" style="margin:0"></span>
+  <div class="links"><a href="/practice">Practice notebook</a><a href="/sheet">Character sheet</a><a href="/bank">Manage handwriting</a><a href="/label">Label scans</a><a href="/">← Generator</a></div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="prompt">
+      <span class="word" id="word">…</span>
+      <span class="meta" id="why"></span>
+      <span style="flex:1"></span>
+      <button id="mode">Switch to sketch mode</button>
+    </div>
+    <div class="row" id="sketchrow" style="display:none;margin:0 0 10px">
+      <input id="sketchname" type="text" placeholder="sketch name, e.g. fig1 or circuit" autocomplete="off" spellcheck="false"/>
+      <span class="meta">Draw anything (a diagram, a graph, a circuit). Use it in your text as <code id="snippet">![caption](pad:name)</code></span>
+    </div>
+    <div class="pad" id="padwrap" style="overflow-x:auto"><canvas id="cv"></canvas></div>
+    <div class="row">
+      <button class="primary" id="save">Save ⏎</button>
+      <button id="undo">Undo stroke</button>
+      <button id="clear">Clear (Esc)</button>
+      <button id="skip">Skip</button>
+      <span style="flex:1"></span>
+      <input id="custom" type="text" placeholder="or type your own word or sentence…" autocomplete="off" spellcheck="false"/>
+      <button id="usecustom">Write this</button>
+    </div>
+    <div id="msg"></div>
+    <div class="queue" id="queue"></div>
+    <h3 style="font-size:12px;color:var(--muted);margin:16px 0 6px;font-weight:600">Your recent samples — delete or redo any mistake</h3>
+    <div id="recent" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    <p class="hint">
+      Write the word on the <b>solid baseline</b>, small letters reaching the dashed
+      x-height line, like you'd write on paper. Write naturally and don't trace the prompt. Every
+      sample becomes a variant the generator redraws with slight changes each time.
+      Pen pressure is recorded if your pad supports it. <kbd>Enter</kbd> save · <kbd>Esc</kbd> clear ·
+      <kbd>Ctrl+Z</kbd> undo stroke.
+    </p>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), g = cv.getContext('2d');
+// Guide geometry in CSS px (strokes are stored in these units)
+const WORD_GUIDE = { baseline: 185, xh: 62, h: 280 };
+// Sentences: comfortable letter size; the pad grows sideways to fit the sentence and
+// scrolls (it moves along by itself when a stroke ends near the right edge).
+const SENTENCE_GUIDE = { baseline: 165, xh: 46, h: 250 };
+let GUIDE = WORD_GUIDE;
+function padWidthFor(text) {
+  const wrap = $('padwrap').clientWidth;
+  if (!(text || '').includes(' ')) return wrap;
+  const words = text.trim().split(/\s+/).length;
+  // ~1.0 x-height per letter + a clear gap per word, plus room at the end
+  return Math.max(wrap, Math.round(text.replace(/\s+/g, '').length * SENTENCE_GUIDE.xh * 1.05
+                                   + words * SENTENCE_GUIDE.xh * 1.3 + 160));
+}
+function setGuideFor(text) {
+  GUIDE = (text || '').includes(' ') ? SENTENCE_GUIDE : WORD_GUIDE;
+  if (S.sketch) return;
+  cv.style.height = GUIDE.h + 'px';
+  const w = padWidthFor(text);
+  cv.style.width = w > $('padwrap').clientWidth ? w + 'px' : '100%';
+  $('padwrap').scrollLeft = 0;
+  sizeCanvas();
+}
+const S = { bank: null, queue: [], idx: 0, strokes: [], cur: null, penSeen: false, saved: 0, sketch: false };
+const params = new URLSearchParams(location.search);
+
+function sizeCanvas() {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  redraw();
+}
+
+function redraw() {
+  const w = cv.getBoundingClientRect().width, h = cv.getBoundingClientRect().height;
+  g.clearRect(0, 0, w, h);
+  if (S.sketch) {
+    g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#111';
+    for (const st of [...S.strokes, ...(S.cur ? [S.cur] : [])]) {
+      for (let i = 1; i < st.length; i++) {
+        g.lineWidth = 1.2 + 2.4 * st[i][2];
+        g.beginPath(); g.moveTo(st[i - 1][0], st[i - 1][1]); g.lineTo(st[i][0], st[i][1]); g.stroke();
+      }
+    }
+    return;
+  }
+  const line = (y, color, dash) => {
+    g.save(); g.strokeStyle = color; g.lineWidth = 1; g.setLineDash(dash || []);
+    g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); g.restore();
+  };
+  line(GUIDE.baseline - 2 * GUIDE.xh, 'rgba(0,0,0,.08)', [3, 6]);   // ascender
+  line(GUIDE.baseline - GUIDE.xh, 'rgba(79,70,229,.45)', [6, 5]);   // x-height
+  line(GUIDE.baseline, 'rgba(220,38,38,.7)');                        // baseline
+  line(GUIDE.baseline + GUIDE.xh, 'rgba(0,0,0,.08)', [3, 6]);       // descender
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#111';
+  for (const st of [...S.strokes, ...(S.cur ? [S.cur] : [])]) {
+    for (let i = 1; i < st.length; i++) {
+      g.lineWidth = 1.2 + 3.2 * st[i][2];
+      g.beginPath(); g.moveTo(st[i - 1][0], st[i - 1][1]); g.lineTo(st[i][0], st[i][1]); g.stroke();
+    }
+    if (st.length === 1) { g.beginPath(); g.arc(st[0][0], st[0][1], 1.5, 0, 7); g.fill(); }
+  }
+}
+
+function pt(e) {
+  const r = cv.getBoundingClientRect();
+  let p = e.pressure;
+  if (e.pointerType === 'mouse' || !p) p = 0.5;      // mouse / no pressure support
+  return [Math.round((e.clientX - r.left) * 10) / 10, Math.round((e.clientY - r.top) * 10) / 10, Math.round(p * 1000) / 1000];
+}
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'pen') S.penSeen = true;
+  if (e.pointerType === 'touch' && S.penSeen) return;  // palm rejection once a pen is used
+  cv.setPointerCapture(e.pointerId);
+  S.cur = [pt(e)]; redraw();
+});
+cv.addEventListener('pointermove', e => {
+  if (!S.cur) return;
+  const co = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  for (const ev of (co.length ? co : [e])) S.cur.push(pt(ev));
+  redraw();
+});
+const end = () => {
+  if (!S.cur) return;
+  const lastX = S.cur[S.cur.length - 1][0];
+  S.strokes.push(S.cur); S.cur = null; redraw();
+  // long sentence pad: writing reached the right part of the view -> slide along
+  const wrap = $('padwrap');
+  if (!S.sketch && wrap.scrollWidth > wrap.clientWidth && lastX - wrap.scrollLeft > wrap.clientWidth * 0.72)
+    wrap.scrollBy({ left: wrap.clientWidth * 0.45, behavior: 'smooth' });
+};
+cv.addEventListener('pointerup', end);
+cv.addEventListener('pointercancel', end);
+
+async function loadBanks() {
+  const banks = await (await fetch('/api/banks')).json();
+  $('bank').innerHTML = banks.map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+  if (banks.length) { S.bank = banks[0].name; await loadPrompts(); }
+  else $('word').textContent = 'No bank yet — run glyphbank.py extract first';
+}
+
+async function loadPrompts() {
+  // ?words=a,b,c (from the generator's "write them on the pad") goes first
+  let asked = (params.get('words') || '').split(',').map(w => w.trim()).filter(Boolean);
+  // sentences handed over by the generator's "Write sentences from this text"
+  if (params.get('from') === 'text') {
+    try { asked = [...JSON.parse(localStorage.getItem('pad_queue') || '[]'), ...asked]; } catch (e) {}
+  }
+  S.queue = [...asked, ...await (await fetch(`/api/banks/${S.bank}/prompts`)).json()];
+  S.idx = 0; show();
+  loadRecent();
+}
+
+function show() {
+  const w = S.queue[S.idx];
+  $('word').textContent = w ?? 'All done! Reload for more prompts.';
+  $('word').style.fontSize = w && w.includes(' ') ? '24px' : '';
+  setGuideFor(w);
+  $('why').textContent = w ? `${S.idx + 1} / ${S.queue.length}` : '';
+  $('count').textContent = S.saved ? `${S.saved} saved this session` : '';
+  $('queue').innerHTML = S.queue.map((q, i) =>
+    `<span class="${i === S.idx ? 'now' : ''}" data-i="${i}" style="cursor:pointer" title="Write this one">${q}</span>`).join('');
+  $('queue').querySelectorAll('span').forEach(sp => sp.onclick = () => { S.idx = +sp.dataset.i; show(); });
+  S.strokes = []; S.cur = null; redraw();
+}
+
+async function save() {
+  if (S.sketch) return saveSketch();
+  const text = S.queue[S.idx];
+  if (!text) return;
+  if (!S.strokes.length) return setMsg('Write it first', 'err');
+  const sentence = text.includes(' ');
+  const res = await fetch(`/api/banks/${S.bank}/${sentence ? 'sentences' : 'samples'}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, strokes: S.strokes, baseline: GUIDE.baseline, x_height: GUIDE.xh }),
+  });
+  const data = await res.json();
+  if (data.error) return setMsg(data.error, 'err');
+  S.saved++;
+  setMsg(sentence ? `Saved ${data.ids.length} words from the sentence` : `Saved “${text}”`, 'ok');
+  S.idx++; show();
+  loadRecent();
+}
+
+async function saveSketch() {
+  const name = $('sketchname').value.trim();
+  if (!name) return setMsg('Give the sketch a name first', 'err');
+  if (!S.strokes.length) return setMsg('Draw something first', 'err');
+  const res = await fetch(`/api/banks/${S.bank}/sketches`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, strokes: S.strokes, x_height: GUIDE.xh }),
+  });
+  const data = await res.json();
+  if (data.error) return setMsg(data.error, 'err');
+  $('snippet').textContent = data.markdown;
+  try { await navigator.clipboard.writeText(data.markdown); } catch (e) {}
+  setMsg(`Saved sketch "${data.name}" — ${data.markdown} copied, paste it into your text`, 'ok');
+  S.strokes = []; redraw();
+}
+
+function setSketch(on) {
+  S.sketch = on;
+  $('mode').textContent = on ? 'Back to word prompts' : 'Switch to sketch mode';
+  $('sketchrow').style.display = on ? 'flex' : 'none';
+  $('word').textContent = on ? 'Sketch' : (S.queue[S.idx] ?? '');
+  if (on) { cv.style.height = '460px'; cv.style.width = '100%'; sizeCanvas(); }
+  else setGuideFor(S.queue[S.idx] ?? '');
+}
+
+async function loadRecent() {
+  if (!S.bank) return;
+  const list = await (await fetch(`/api/banks/${S.bank}/samples`)).json();
+  $('recent').innerHTML = (Array.isArray(list) ? list.slice(0, 40) : []).map(s => `
+    <div style="border:1px solid var(--line);border-radius:8px;padding:6px;background:#fff;display:flex;flex-direction:column;align-items:center;gap:4px">
+      <img src="/banks/${S.bank}/words/${s.id}.png?t=${Date.now()}" style="height:44px;max-width:180px" alt="${s.text}"/>
+      <div style="display:flex;gap:4px;align-items:center;font-size:11px;color:#333">
+        <b>${s.text}</b>
+        <button data-del="${s.id}" style="padding:1px 6px;font-size:11px">Delete</button>
+        <button data-redo="${s.id}" data-text="${s.text}" style="padding:1px 6px;font-size:11px">Redo</button>
+      </div>
+    </div>`).join('') || '<span class="hint">nothing yet</span>';
+  $('recent').querySelectorAll('[data-del]').forEach(b => b.onclick = () => removeSample(b.dataset.del));
+  $('recent').querySelectorAll('[data-redo]').forEach(b => b.onclick = async () => {
+    if (await removeSample(b.dataset.redo)) { S.queue.splice(S.idx, 0, b.dataset.text); show(); }
+  });
+}
+
+async function removeSample(id) {
+  const res = await fetch(`/api/banks/${S.bank}/samples/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.error) { setMsg(data.error, 'err'); return false; }
+  setMsg('Deleted', 'ok');
+  loadRecent();
+  return true;
+}
+
+function setMsg(t, cls = '') { $('msg').textContent = t; $('msg').className = cls; }
+
+$('save').onclick = save;
+$('mode').onclick = () => setSketch(!S.sketch);
+$('sketchname').addEventListener('input', () => {
+  $('snippet').textContent = `![caption](pad:${$('sketchname').value.trim() || 'name'})`;
+});
+$('clear').onclick = () => { S.strokes = []; $('padwrap').scrollLeft = 0; redraw(); };
+$('undo').onclick = () => { S.strokes.pop(); redraw(); };
+$('skip').onclick = () => { S.idx++; show(); };
+$('usecustom').onclick = () => {
+  const w = $('custom').value.trim().replace(/\s+/g, ' ');   // a word or a whole sentence
+  if (!w) return;
+  S.queue.splice(S.idx, 0, w); $('custom').value = ''; show();
+};
+$('bank').onchange = e => { S.bank = e.target.value; loadPrompts(); };
+document.addEventListener('keydown', e => {
+  if (document.activeElement === $('custom')) { if (e.key === 'Enter') $('usecustom').click(); return; }
+  if (document.activeElement === $('sketchname')) { if (e.key === 'Enter') save(); return; }
+  if (e.key === 'Enter') { e.preventDefault(); save(); }
+  else if (e.key === 'Escape') { S.strokes = []; $('padwrap').scrollLeft = 0; redraw(); }
+  else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); S.strokes.pop(); redraw(); }
+});
+window.addEventListener('resize', sizeCanvas);
+sizeCanvas();
+loadBanks().then(() => {
+  if (params.get('sketch')) { $('sketchname').value = params.get('sketch'); setSketch(true); }
+});
+</script>
+</body>
+</html>
