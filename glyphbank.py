@@ -573,6 +573,7 @@ def _build(bank: Path) -> dict:
             # pad strokes are clean, so their measured size is trustworthy: allow more
             # correction (people write smaller than the pad's guide lines)
             clamp = (0.45, 2.4) if w.get("source") == "pad" else (0.55, 1.5)
+            entry["base0"] = entry["baseline"]          # where the pad's guide line was
             entry.update(_piece_metrics(piece, entry["baseline"], ref, label, clamp))
             if w.get("source") == "pad" and len(w["labels"]) == 1:
                 entry["strokes"] = f"{w['id']}.json"    # redrawn with variation at render time
@@ -1011,7 +1012,12 @@ def _piece_metrics(piece: np.ndarray, base: float, ref: float, label: str,
         out["desc"] = True
         out["below"] = float((rows[-1] + 1 - base) / ref)
         return out
-    body = base - rows[0]
+    # height above the baseline from the letters themselves: small separate marks above
+    # them (i/j dots, accents) don't count, or every word with an i came out too small
+    n_cc, _, st, _ = cv2.connectedComponentsWithStats(m.astype(np.uint8), connectivity=8)
+    big = [i for i in range(1, n_cc) if st[i, cv2.CC_STAT_AREA] >= 0.04 * m.sum()]
+    top = min(int(st[i, cv2.CC_STAT_TOP]) for i in big) if big else int(rows[0])
+    body = base - top
     out["below"] = float((rows[-1] + 1 - base) / ref)       # how far ink hangs under the baseline
     out["desc"] = bool(set(label) & DESC)
     if letters and body > 0.3 * ref:
@@ -1019,6 +1025,18 @@ def _piece_metrics(piece: np.ndarray, base: float, ref: float, label: str,
         # 1.06 page x-heights above the baseline, pieces with tall letters 1.80
         expect = (1.80 if any(c in TALL for c in letters) else 1.06) * ref
         out["size_fix"] = float(np.clip(expect / body, *clamp))
+        if len(letters) >= 2:
+            # words / letter groups: size by their letter (x-) height, the 40th percentile
+            # of the column tops - ascenders, i-dots and accents cover few columns and
+            # can't pull it up. Sizing by the highest point made words with tall
+            # ascenders or i's come out with small letters (0.78-1.18 x-heights apart).
+            # 0.967: the bank's median before, so the overall size stays the same.
+            cols = np.where(m[:int(base)].any(0))[0] if base > 0 else []
+            if len(cols) >= 3:
+                h = np.array([base - int(np.argmax(m[:, c])) for c in cols], np.float32)
+                xh_here = float(np.percentile(h, 40))
+                if xh_here > 0.25 * ref:
+                    out["size_fix"] = float(np.clip(0.967 * ref / xh_here, *clamp))
     contours, _ = cv2.findContours(m.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     perim = sum(cv2.arcLength(c, True) for c in contours)
     out["stroke"] = float(2.0 * m.sum() / max(1.0, perim) / ref)
@@ -1221,7 +1239,7 @@ class GlyphBank:
         # letter repeats all the time in real writing (and is re-penned each time), so
         # it gets a light penalty - a heavy one pushed half the letters onto the font.
         multi = len(g["label"]) > 1
-        c += (0.3 if multi else 0.12) * min(2 if multi else 3, self._page_used.get(g["file"], 0))
+        c += (0.45 if multi else 0.12) * min(3, self._page_used.get(g["file"], 0))
         last = self._used.get(g["file"])
         if last is not None:
             c += 0.3 * max(0.0, 1.0 - (self._tick - last) / 12.0)   # used recently: rotate variants
@@ -1272,6 +1290,10 @@ class GlyphBank:
                                            g.get("ink_left", 0), g.get("ink_right", mask.width),
                                            g["file"], g.get("ref_xh", self.ref_xh), g.get("size_fix", 1.0),
                                            strokes)
+            # pad strokes are drawn around the guide line; the measured baseline may sit
+            # above / below it (words written high or low): the shift, in stroke units
+            ref = float(g.get("ref_xh") or self.ref_xh or 30.0)
+            self._cache[g["file"]].base_shift = (g["baseline"] - g.get("base0", g["baseline"])) / ref
         return self._cache[g["file"]]
 
 
@@ -1365,6 +1387,26 @@ def _smooth_stroke(p: np.ndarray, eps: float = 0.035, step: float = 0.006) -> np
     return np.column_stack([curve] + [np.interp(frac, u / t[-1], a) for a in attrs])
 
 
+def _vary_strokes(strokes: List[np.ndarray], amp: float, unit: float, rng) -> List[np.ndarray]:
+    """One use of a pad sample, written again: the same word by the same hand is never
+    the same picture twice. Only slow, whole-word changes (a fast wobble looks fake):
+    letters drift a little closer or further apart along the word, the baseline curves
+    gently, and separate small strokes (i-dots, t-crosses, accents) land a bit
+    differently. amp / unit: one x-height in stroke units."""
+    two_pi = 2 * np.pi
+    L1, a1, p1 = rng.uniform(1.6, 3.0) * unit, rng.uniform(0.04, 0.08) * amp, rng.uniform(0, two_pi)
+    L2, a2, p2 = rng.uniform(2.0, 4.0) * unit, rng.uniform(0.02, 0.045) * amp, rng.uniform(0, two_pi)
+    out = []
+    for p in strokes:
+        q = p.copy()
+        length = float(np.hypot(*np.diff(p[:, :2], axis=0).T).sum()) if len(p) > 1 else 0.0
+        small = length < 0.45 * unit
+        q[:, 0] = p[:, 0] + a1 * np.sin(two_pi * p[:, 0] / L1 + p1) + rng.gauss(0, (0.06 if small else 0.015) * amp)
+        q[:, 1] = p[:, 1] + a2 * np.sin(two_pi * p[:, 0] / L2 + p2) + rng.gauss(0, (0.05 if small else 0.012) * amp)
+        out.append(q)
+    return out
+
+
 def _trim_exit(strokes: List[np.ndarray], max_tail: float) -> List[np.ndarray]:
     """Shorten a long flat exit stroke: on the tablet the pen keeps travelling right
     after the last letter (a third of the word's width for some samples), which next to
@@ -1422,7 +1464,8 @@ _SMOOTH_CACHE: Dict[int, tuple] = {}   # id(strokes) -> (strokes, smoothed strok
 def render_strokes(strokes: list, xh_px: float, width_px: float, jitter: float = 0.0,
                    sx: float = 1.0, sy: float = 1.0, rng: Optional[random.Random] = None,
                    dens: Optional[list] = None, max_below: Optional[float] = None,
-                   max_tail: Optional[float] = None) -> Tuple[Image.Image, float, float, float]:
+                   max_tail: Optional[float] = None, vary: float = 0.0, unit: float = 1.0,
+                   y_shift: float = 0.0) -> Tuple[Image.Image, float, float, float]:
     """Draw pen strokes (x-height units, baseline y=0) as an "L" mask.
     jitter > 0 wobbles every stroke smoothly (fraction of x-height) and varies
     pressure, so each rendering of the same sample differs like real writing.
@@ -1467,8 +1510,13 @@ def render_strokes(strokes: list, xh_px: float, width_px: float, jitter: float =
         if len(_SMOOTH_CACHE) > 4000:
             _SMOOTH_CACHE.clear()
         _SMOOTH_CACHE[id(strokes)] = (strokes, smoothed)
+    if y_shift:
+        # move the writer's real baseline (measured from the ink) onto y = 0
+        smoothed = [np.column_stack([p[:, 0], p[:, 1] - y_shift, p[:, 2:]]) for p in smoothed]
     if max_tail:
         smoothed = _trim_exit(smoothed, max_tail)
+    if vary > 0:
+        smoothed = _vary_strokes(smoothed, vary * unit, unit, rng)
     # max_below (stroke units): tails longer than that are compressed smoothly from half
     # way down (shape kept), so a tablet-long loop doesn't run into the next line
     lowest = max(float(p[:, 1].max()) for p in smoothed)
@@ -1638,6 +1686,7 @@ def pad_entry(bank: Path, rec: dict) -> Optional[dict]:
     entry = {"label": label, "file": fname, "baseline": rec["baseline"] - top, "xh": rec["xh"],
              "ref_xh": ref, "ink_left": int(cols[0]), "ink_right": int(cols[-1]) + 1,
              "slant": rec["slant"], "cut": False, "source": "pad", "strokes": f"{rec['id']}.json"}
+    entry["base0"] = entry["baseline"]
     entry.update(_piece_metrics(piece, entry["baseline"], ref, label, (0.45, 2.4)))
     return entry
 

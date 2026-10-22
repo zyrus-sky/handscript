@@ -4,11 +4,14 @@
    "unlike the other 7 copies of 'H'"
   ],
   "p01_l01_w008_0.png": [
+   "size still wrong after correction",
    "unlike the other 6 copies of 'the'"
   ],
   "p01_l02_w015_1.png": [
-   "size still wrong after correction",
    "unlike the other 8 copies of 'm'"
+  ],
+  "p01_l02_w015_2.png": [
+   "size still wrong after correction"
   ],
   "p01_l02_w016_0.png": [
    "OCR reads 'C.G.'"
@@ -16,26 +19,29 @@
   "p01_l02_w016_2.png": [
    "unlike the other 6 copies of 'A'"
   ],
-  "p01_l02_w020_1.png": [
-   "size still wrong after correction"
-  ],
-  "p01_l05_w021_4.png": [
-   "size still wrong after correction"
-  ],
   "p01_l05_w023_0.png": [
    "unlike the other 13 copies of 'to'"
   ],
   "p01_l05_w024_2.png": [
-   "OCR reads '\" I'"
+   "size still wrong after correction"
   ],
   "p01_l05_w028_1.png": [
    "unlike the other 21 copies of 'o'"
+  ],
+  "p01_l06_w033_0.png": [
+   "size still wrong after correction"
   ],
   "p01_l06_w035_4.png": [
    "size still wrong after correction"
   ],
   "p01_l06_w035_6.png": [
    "OCR reads 'al'"
+  ],
+  "p01_l06_w038_1.png": [
+   "size still wrong after correction"
+  ],
+  "p01_l08_w041_2.png": [
+   "size still wrong after correction"
   ],
   "p01_l08_w042_0.png": [
    "unlike the other 6 copies of 'f'"
@@ -50,13 +56,17 @@
    "size still wrong after correction"
   ],
   "p01_l11_w050_0.png": [
+   "size still wrong after correction",
    "unlike the other 8 copies of 'and'"
   ],
-  "p01_l12_w053_0.png": [
+  "p01_l12_w056_1.png": [
    "size still wrong after correction"
   ],
   "p01_l13_w059_1.png": [
    "unlike the other 21 copies of 's'"
+  ],
+  "p01_l13_w060_0.png": [
+   "size still wrong after correction"
   ],
   "p01_l14_w063_0.png": [
    "size still wrong after correction"
@@ -86,8 +96,14 @@
   "p01_l19_w086_1.png": [
    "size still wrong after correction"
   ],
+  "p01_l19_w087_2.png": [
+   "size still wrong after correction"
+  ],
   "p01_l19_w087_4.png": [
    "unlike the other 8 copies of 'c'"
+  ],
+  "p01_l21_w095_0.png": [
+   "size still wrong after correction"
   ],
   "p01_l21_w097_1.png": [
    "unlike the other 13 copies of 'to'"
@@ -95,11 +111,20 @@
   "p01_l21_w099_1.png": [
    "unlike the other 7 copies of 'd'"
   ],
+  "p01_l21_w099_3.png": [
+   "size still wrong after correction"
+  ],
+  "p01_l21_w100_7.png": [
+   "size still wrong after correction"
+  ],
   "p01_l24_w103_0.png": [
    "unlike the other 4 copies of '3'"
   ],
   "p01_l24_w104_1.png": [
    "unlike the other 12 copies of 't'"
+  ],
+  "p01_l24_w106_1.png": [
+   "size still wrong after correction"
   ],
   "p01_l24_w106_2.png": [
    "size still wrong after correction"
@@ -111,9 +136,13 @@
    "unlike the other 27 copies of 'e'"
   ],
   "p01_l24_w107_3.png": [
-   "OCR reads 'Cap'"
+   "size still wrong after correction"
+  ],
+  "p01_l24_w107_4.png": [
+   "size still wrong after correction"
   ],
   "p01_l26_w108_0.png": [
+   "size still wrong after correction",
    "unlike the other 8 copies of 'and'"
   ],
   "p01_l26_w109_2.png": [
@@ -124,6 +153,9 @@
   ],
   "p01_l27_w114_2.png": [
    "unlike the other 6 copies of 'or'"
+  ],
+  "p01_l27_w115_2.png": [
+   "size still wrong after correction"
   ],
   "p01_l27_w117_1.png": [
    "unlike the other 8 copies of 'c'"
@@ -145,8 +177,15 @@
    "size still wrong after correction",
    "unlike the other 21 copies of 's'"
   ],
+  "p01_l29_w119_4.png": [
+   "size still wrong after correction"
+  ],
   "p01_l29_w119_5.png": [
+   "size still wrong after correction",
    "unlike the other 4 copies of 'be'"
+  ],
+  "pad_0011_0.png": [
+   "size still wrong after correction"
   ],
   "pad_0032_0.png": [
    "unlike the other 4 copies of '6'"
@@ -169,9 +208,6 @@
   "pad_0069_0.png": [
    "OCR reads 'or'"
   ],
-  "pad_0070_0.png": [
-   "size still wrong after correction"
-  ],
   "pad_0107_0.png": [
    "unlike the other 4 copies of 'from'"
   ],
@@ -181,10 +217,7 @@
   "pad_0129_0.png": [
    "OCR reads 'rat'"
   ],
-  "pad_0136_0.png": [
-   "size still wrong after correction"
-  ],
-  "pad_0173_0.png": [
+  "pad_0185_0.png": [
    "size still wrong after correction"
   ],
   "pad_0192_0.png": [
@@ -193,19 +226,28 @@
   "pad_0193_0.png": [
    "OCR reads 'we'"
   ],
-  "pad_0195_0.png": [
-   "size still wrong after correction"
-  ],
   "pad_0201_0.png": [
    "OCR reads 'we'"
   ],
   "pad_0203_0.png": [
    "unlike the other 4 copies of 'than'"
   ],
+  "pad_0204_0.png": [
+   "size still wrong after correction"
+  ],
+  "pad_0206_0.png": [
+   "size still wrong after correction"
+  ],
   "pad_0234_0.png": [
    "OCR reads 'rivitnd .'"
   ],
-  "pad_0261_0.png": [
+  "pad_0241_0.png": [
+   "size still wrong after correction"
+  ],
+  "pad_0257_0.png": [
+   "size still wrong after correction"
+  ],
+  "pad_0258_0.png": [
    "size still wrong after correction"
   ],
   "pad_0271_0.png": [
@@ -217,7 +259,7 @@
   "pad_0274_0.png": [
    "size still wrong after correction"
   ],
-  "pad_0292_0.png": [
+  "pad_0298_0.png": [
    "size still wrong after correction"
   ],
   "pad_0318_0.png": [
@@ -253,22 +295,28 @@
   "pad_0429_0.png": [
    "unlike the other 4 copies of '9'"
   ],
-  "pad_0473_0.png": [
+  "pad_0474_0.png": [
+   "size still wrong after correction"
+  ],
+  "pad_0479_0.png": [
    "size still wrong after correction"
   ],
   "pad_0480_0.png": [
-   "OCR reads 'yav'"
-  ],
-  "pad_0484_0.png": [
    "size still wrong after correction"
   ],
-  "pad_0492_0.png": [
+  "pad_0481_0.png": [
    "size still wrong after correction"
   ],
-  "pad_0495_0.png": [
+  "pad_0482_0.png": [
    "size still wrong after correction"
   ],
-  "pad_0496_0.png": [
+  "pad_0489_0.png": [
+   "size still wrong after correction"
+  ],
+  "pad_0501_0.png": [
+   "size still wrong after correction"
+  ],
+  "pad_0502_0.png": [
    "size still wrong after correction"
   ],
   "pad_0533_0.png": [

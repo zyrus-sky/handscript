@@ -146,7 +146,7 @@ class EngineConfig:
     # (strokes up to this much lighter / 45 % of it heavier).
     word_lean_deg: float = 2.0
     word_tilt_deg: float = 1.2
-    word_size_var: float = 0.04
+    word_size_var: float = 0.06
     word_weight_var: float = 0.18
     # Pad samples are redrawn along a slightly different smooth pen path each time
     # (natural variation, not distortion) — independent of the wobble above.
@@ -154,6 +154,9 @@ class EngineConfig:
     # Multiplies the distance between lines (on top of line_height or the writer's
     # measured line pitch): 1.0 = as measured, 1.5 = one and a half spacing.
     line_spacing: float = 1.0
+    # Each use of a pad sample redrawn a little differently (letter spacing, baseline
+    # curve, where dots/crosses land): a repeated word never looks like the same picture
+    pad_variation: float = 1.0
     # Letter width on top of the bank's measured pad->paper widening (1.0 = as measured)
     letter_width: float = 1.0
     # How uneven the gaps between lines are (0 = ruler-perfect, 1 = natural, 2 = loose).
@@ -597,9 +600,30 @@ class HandwritingEngine:
         # current writing region (lists / table cells narrow it)
         self._left = float(self.cfg.margin_left)
         self._right = float(self.cfg.page_width - self.cfg.margin_right)
-        self._x = self._left + random.uniform(*self.cfg.margin_left_jitter)
+        xh = self._x_height * self._page_scale
+        self._margin_drift = random.gauss(0, 0.3 * xh)
+        self._page_lean = random.uniform(-0.05, 0.09) * xh   # lines creep right (or left) down the page
+        self._line_no = 0
+        self._x = self._left + self._margin_offset()
         self._y = float(self.cfg.margin_top)
         self._new_line_params()
+
+    def _full_width(self) -> bool:
+        """Writing across the page (not inside a table cell or a narrow column)."""
+        return (self._right - self._left) > 0.6 * self.cfg.page_width
+
+    def _margin_offset(self) -> float:
+        """Where a line starts relative to the margin. By hand the left edge wanders: a
+        slow drift over a few lines, a slight lean down the page, and each line's own
+        jitter (a ruler-straight left edge looks typeset). Columns and cells stay put."""
+        if not self._full_width():
+            return random.uniform(*self.cfg.margin_left_jitter) * 0.5
+        xh = self._x_height * self._page_scale
+        self._line_no = getattr(self, "_line_no", 0) + 1
+        self._margin_drift = max(-1.1 * xh, min(1.1 * xh, 0.8 * getattr(self, "_margin_drift", 0.0)
+                                                   + random.gauss(0, 0.3 * xh)))
+        lean = max(-1.2 * xh, min(1.2 * xh, getattr(self, "_page_lean", 0.0) * self._line_no))
+        return self._margin_drift + lean + random.gauss(0, 0.12 * xh)
 
     def _new_line_params(self) -> None:
         """Assign random slope, wave parameters, and margin jitter for a new line."""
@@ -608,6 +632,10 @@ class HandwritingEngine:
         slope_lo, slope_hi = self.cfg.slope_range
         self._line_slope = random.uniform(slope_lo * f, slope_hi * f)
         self._line_start_x = self._x
+        # where this line gives up: writers stop before the margin at varying points
+        # (the next word won't fit), so the right edge is ragged
+        xh = self._x_height * self._page_scale
+        self._line_right = self._right - (random.uniform(0.0, 1.4) * xh if self._full_width() else 0.0)
         self._line_char_index = 0
         # Generate multi-harmonic wave components for this line.
         # Each harmonic has a random period, phase, and relative amplitude.
@@ -753,7 +781,9 @@ class HandwritingEngine:
                 jitter=self.cfg.pad_redraw_variation * 0.045,
                 sx=sx * g.size_fix * self._widen(g), sy=sy * g.size_fix,
                 max_below=1.25 / max(0.3, g.size_fix),   # tails as deep as on paper (1.15-1.3)
-                max_tail=0.3 / max(0.3, g.size_fix))     # a short exit, not a trailing smear
+                max_tail=0.3 / max(0.3, g.size_fix),     # a short exit, not a trailing smear
+                vary=self.cfg.pad_variation, unit=1.0 / max(0.3, g.size_fix),
+                y_shift=getattr(g, "base_shift", 0.0))
         else:
             s = self._x_height / (g.ref_xh or self.bank.ref_xh) * g.size_fix
             w = max(1, round(g.mask.width * s * sx * self._widen(g)))
@@ -1055,8 +1085,7 @@ class HandwritingEngine:
         self._x += char_width + spacing
 
     def _line_break(self, scale: float = 1.0) -> None:
-        mr = self._fatigue_scale(self.cfg.margin_left_jitter)
-        self._x = self._left + random.uniform(min(mr), max(mr))
+        self._x = self._left + self._margin_offset()
         gr = self._fatigue_scale(self.cfg.line_gap_jitter)
         lh = self.cfg.line_height * scale * (1 + 0.5 * (self._page_scale - 1))
         # Hand-written line gaps aren't even: a slow drift down the page (a few lines a
@@ -1163,8 +1192,13 @@ class HandwritingEngine:
                 xh = self._x_height * self._page_scale * scale
                 self.newline(scale, extra=random.uniform(0.1, 0.55) * self.cfg.line_height * scale)
                 self._x += random.uniform(0.0, 1.6) * xh
-        elif wrap and self._x + width > self._right and self._x > self._line_start_x + 1:
-            self.newline(scale)
+        elif wrap and self._x + width > getattr(self, "_line_right", self._right) and self._x > self._line_start_x + 1:
+            # a short word may still be squeezed in a little past the line's stop
+            xh = self._x_height * self._page_scale * scale
+            squeeze = (len(word) <= 4 and self._x + width <= self._right + 0.3 * xh
+                       and random.random() < 0.5)
+            if not squeeze:
+                self.newline(scale)
         self._after_question = word.rstrip("\"')]").endswith("?")
         if self.cfg.editable and self._origin == (0, 0):
             return self._write_layered(word, plan, width, scale)

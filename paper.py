@@ -38,8 +38,9 @@ def scanify(page: Image.Image, strength: float = 1.0, rng: Optional[random.Rando
     bgm = paper[None, None, :] * (tone * shade)[:, :, None]
 
     # the page's own ink colour (its darkest strokes), mixed over the paper by ink amount
-    solid = ink > np.percentile(ink[ink > 0.05], 90)
-    ink_col = np.median(rgb[solid], axis=0)
+    # (>=: dark ink saturates at 1.0, and "> 90th percentile" was then empty -> NaN colour)
+    solid = ink >= np.percentile(ink[ink > 0.05], 90) if (ink > 0.05).any() else ink > 0.5
+    ink_col = np.median(rgb[solid], axis=0) if solid.any() else np.array([20, 20, 22], np.float32)
     out = bgm * (1 - ink[:, :, None]) + ink_col[None, None, :] * ink[:, :, None]
 
     img = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
@@ -92,8 +93,9 @@ def _ink_texture(page: Image.Image, amount: float = 0.5, flow=None, patch=None) 
     ink = np.clip((250.0 - rgb.mean(2)) / 220.0, 0, 1)
     if not (ink > 0.05).any():
         return page
-    solid = ink > np.percentile(ink[ink > 0.05], 90)
-    ink_col = np.median(rgb[solid], axis=0)
+    # (>=: dark ink saturates at 1.0, and "> 90th percentile" was then empty -> NaN colour)
+    solid = ink >= np.percentile(ink[ink > 0.05], 90) if (ink > 0.05).any() else ink > 0.5
+    ink_col = np.median(rgb[solid], axis=0) if solid.any() else np.array([20, 20, 22], np.float32)
 
     # stroke direction field: the stroke runs perpendicular to the ink gradient
     sm = cv2.GaussianBlur(ink, (0, 0), 1.5)
