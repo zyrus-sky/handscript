@@ -3,7 +3,9 @@
 - install: `pip install -r requirements.txt`
 - run web app: `python app.py` → http://localhost:5000 (`PORT` env overrides); labeling UI at `/label`, pen-tablet capture at `/capture`
 - glyph bank: `python glyphbank.py extract <scan.pdf> --bank banks/<name>` (segments words + writes layout.json; `measure` redoes only the layout; `--append` adds more pages/photos to an existing bank, colour photos on ruled paper are reduced to the ink); labeling rebuilds `banks/<name>/bank.json`; `python glyphbank.py build --bank banks/<name>` rebuilds by hand
-- run CLI: `python main.py --text "Hello" [--fonts fonts/1.ttf] [--glyph-bank banks/mine] [--model] -o output.pdf`
+- run CLI: `python main.py --file notes.md -o out.pdf --ink blue --preview generated/preview --json` (also `--text`, `--pdf`, `--file -`; `--bank none`, `--show-through`, `--proofread`, `--dpi`, `--letter-width`); same settings as the web generator via `genconfig.config_from_params`
+- skill: `.claude/skills/handscript/SKILL.md` (write Markdown → main.py → check previews → deliver; cloud sessions commit `generated/*.pdf` with `git add -f`); SessionStart hook `.claude/hooks/ensure_deps.py` installs packages on fresh cloud machines
+- repo: private github.com/zyrus-sky/handscript (includes banks/mine); push after adding pad samples so cloud sessions write with them
 - handwriting model deps (optional): `pip install -r requirements-model.txt` (keep huggingface_hub<1.0 for transformers 4.x)
 - tests: none formal; ad-hoc scripts `python test_fatigue.py`, `python test_run_cursive.py` (hardcode an old fonts path `d:/Projects_Grouped/DZypher/upcycle_ai/hand/fonts`), `reproduce_error.py` (needs server running)
 ## Live code
